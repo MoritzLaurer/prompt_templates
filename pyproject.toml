@@ -3,7 +3,7 @@ name = "hf-hub-prompts"
 version = "0.0.1"
 description = "An experimental library for working with prompts on the Hugging Face Hub."
 authors = ["MoritzLaurer <moritz@huggingface.co>"]
-license = "MIT"
+license = "Appache-2.0"
 readme = "README.md"
 
 [tool.poetry.dependencies]
