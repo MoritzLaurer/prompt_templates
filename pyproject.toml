@@ -5,6 +5,7 @@ description = "An experimental library for working with prompts on the Hugging F
 authors = ["MoritzLaurer <moritz@huggingface.co>"]
 license = "Appache-2.0"
 readme = "README.md"
+homepage = "https://github.com/huggingface/huggingface_hub"
 
 [tool.poetry.dependencies]
 python = "^3.9"
