@@ -52,7 +52,7 @@ def download_prompt(repo_id: str, filename: str, repo_type: Optional[str] = "mod
     return PromptTemplate(**prompt_file["prompt"], full_yaml_content=prompt_file, prompt_url=prompt_url)
     
     
-def list_prompts(repo_id: str, token: Optional[str] = None) -> List[str]:
+def list_prompts(repo_id: str, repo_type: Optional[str] = "model", token: Optional[str] = None) -> List[str]:
     """List available prompt YAML files in a Hugging Face repository.
 
     Note:
@@ -72,6 +72,6 @@ def list_prompts(repo_id: str, token: Optional[str] = None) -> List[str]:
         "It does not check if a file is a valid prompt, which would require downloading it."
     )
     api = HfApi(token=token)
-    yaml_files = [file for file in api.list_repo_files(repo_id) if file.endswith((".yaml", ".yml"))]
+    yaml_files = [file for file in api.list_repo_files(repo_id, repo_type=repo_type) if file.endswith((".yaml", ".yml"))]
     return yaml_files
 

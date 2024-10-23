@@ -172,7 +172,7 @@ class PromptTemplate:
     def __getitem__(self, key: str) -> Any:
         return self.__dict__[key]
     
-    
+    # TODO: remove self.full_yaml_content from this or elsewhere? Very long and duplicative
     def __repr__(self) -> str:
         attributes = ', '.join(f"{key}={value!r}" for key, value in self.__dict__.items())
         return f"PromptTemplate({attributes})"
