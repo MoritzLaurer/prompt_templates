@@ -6,7 +6,7 @@ Prompts are shared on the HF Hub in [.txt files](https://huggingface.co/HuggingF
 in [HF datasets](https://huggingface.co/datasets/fka/awesome-chatgpt-prompts),
 as strings in [model cards](https://huggingface.co/OpenGVLab/InternVL2-8B#grounding-benchmarks),
 or on GitHub as [python strings](https://github.com/huggingface/cosmopedia/tree/main/prompts), 
-in [JSON, YAML](https://github.com/hwchase17/langchain-hub/blob/master/prompts/README.md)
+in [JSON, YAML](https://github.com/hwchase17/langchain-hub/blob/master/prompts/README.md),
 or in [Jinja2](https://github.com/argilla-io/distilabel/tree/main/src/distilabel/steps/tasks/templates). 
 
 ## Objectives and Non-Objectives of this repo
@@ -331,7 +331,7 @@ and [ChatPromptTemplate](https://python.langchain.com/api_reference/core/prompts
 
 
 
-## Reflection: Sharing prompts as YAML files, or jinja2 templates, or as HF datasets?
+## Pros/Cons of sharing prompts as YAML files, or jinja2 templates, or as HF datasets
 
 ### Pro/Con prompts as YAML files
 - Existing prompt hubs use YAML: [LangChain Hub](https://smith.langchain.com/hub) (see also [this](https://github.com/hwchase17/langchain-hub/blob/master/prompts/README.md)); 
