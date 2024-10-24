@@ -28,8 +28,17 @@ class BasePromptTemplate(ABC):
         self.prompt_url = prompt_url  
 
     @abstractmethod
-    def format_prompt(self, **kwargs: Any) -> Union[str, List[Dict[str, str]], Dict[str, Any]]:
-        """Abstract method to format the prompt with the given variables."""
+    def populate_template(self, **kwargs: Any) -> Union[str, List[Dict[str, Any]]]:
+        """Abstract method to populate the prompt template with the given variables.
+        
+        Args:
+            **kwargs: The values to replace placeholders in the template.
+        
+        Returns:
+            Union[str, List[Dict[str, Any]]]: The populated template, either as:
+                - str: For standard prompt templates
+                - List[Dict[str, Any]]: For chat prompt templates in OpenAI format
+        """
         pass
 
     def display(self, format: Literal['json', 'yaml'] = 'json') -> None:
@@ -60,7 +69,6 @@ class BasePromptTemplate(ABC):
         attributes = ', '.join(f"{key}={repr(value)[:50]}..." if len(repr(value)) > 50 else f"{key}={repr(value)}"
                             for key, value in self.__dict__.items())
         return f"{self.__class__.__name__}({attributes})"
-
 
     def _replace_placeholders(self, obj: Any, kwargs: Dict[str, Any]) -> Any:
         """Recursively replace placeholders in strings or nested structures like dicts or lists."""
@@ -126,18 +134,18 @@ class PromptTemplate(BasePromptTemplate):
 
         super().__init__(full_yaml_content=full_yaml_content, **kwargs)
 
-    def format_prompt(self, **kwargs: Any) -> str:
-        """Format the prompt by replacing placeholders with provided values.
+    def populate_template(self, **kwargs: Any) -> str:
+        """Populate the prompt by replacing placeholders with provided values.
 
         Args:
             **kwargs: The values to replace placeholders in the template.
 
         Returns:
-            str: The formatted prompt string.
+            str: The populated prompt string.
         """
         self._validate_input_variables(kwargs)
-        formatted_prompt = self._replace_placeholders(self.template, kwargs)
-        return formatted_prompt
+        populated_prompt = self._replace_placeholders(self.template, kwargs)
+        return populated_prompt
 
     def to_langchain_template(self) -> "PromptTemplate":
         """Convert the PromptTemplate to a LangChain PromptTemplate.
@@ -179,41 +187,63 @@ class ChatPromptTemplate(BasePromptTemplate):
 
         super().__init__(full_yaml_content=full_yaml_content, **kwargs)
 
-    def format_prompt(self, client: str = "openai", **kwargs: Any) -> Any:
-        """Format the prompt messages by replacing placeholders with provided values.
+
+    def populate_template(self, **kwargs: Any) -> List[Dict[str, Any]]:
+        """Populate the prompt messages by replacing placeholders with provided values.
+
+        Args:
+            **kwargs: The values to replace placeholders in the messages.
+
+        Returns:
+            List[Dict[str, Any]]: List of populated message dictionaries in OpenAI format.
+        """
+        self._validate_input_variables(kwargs)
+
+        messages_populated = [
+            {**msg, "content": self._replace_placeholders(msg["content"], kwargs)}
+            for msg in self.messages
+        ]
+        return messages_populated
+
+
+    def format_for_client(self, messages: List[Dict[str, Any]], client: str = "openai") -> Union[List[Dict[str, Any]], Dict[str, Any]]:
+        """Format populated messages for a specific client.
+
+        Args:
+            messages (List[Dict[str, Any]]): List of populated message dictionaries.
+            client (str): The client format to use ('openai', 'anthropic'). Defaults to 'openai'.
+
+        Returns:
+            Union[List[Dict[str, Any]], Dict[str, Any]]: Messages formatted for the specified client.
+
+        Raises:
+            ValueError: If an unsupported client format is specified.
+        """
+        if client == "openai":
+            return messages
+        elif client == "anthropic":
+            return self._template_to_anthropic(messages)
+        else:
+            raise ValueError(
+                f"Unsupported client format: {client}. "
+                f"Supported formats are: {SUPPORTED_CLIENT_FORMATS}"
+            )
+        
+
+    def create_messages(self, client: str = "openai", **kwargs: Any) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
+        """Convenience method to populate template and format for client in one step.
 
         Args:
             client (str): The client format to use ('openai', 'anthropic'). Defaults to 'openai'.
             **kwargs: The values to replace placeholders in the messages.
 
         Returns:
-            Any: Formatted messages suitable for the specified client.
-
-        Raises:
-            ValueError: If input variables provided do not match the expected input variables.
-            ValueError: If an unsupported client format is specified.
+            Union[List[Dict[str, Any]], Dict[str, Any]]: Populated and formatted messages.
         """
-        self._validate_input_variables(kwargs)
-
-        # Populate messages
-        messages_populated = [
-            {**msg, "content": self._replace_placeholders(msg["content"], kwargs)}
-            for msg in self.messages
-        ]
-
-        # Convert messages to the desired client format
-        if client == "openai":
-            # is default
-            pass
-        elif client == "anthropic":
-            messages_populated = self._template_to_anthropic(messages_populated)
-        elif client not in SUPPORTED_CLIENT_FORMATS:
-            raise ValueError(
-                f"Unsupported client format: {client}. Supported formats are: {SUPPORTED_CLIENT_FORMATS}"
-            )
-
-        return messages_populated
-
+        populated_messages = self.populate_template(**kwargs)
+        return self.format_for_client(populated_messages, client)
+        
+        
     def _template_to_anthropic(self, messages_populated: List[Dict[str, Any]]) -> Dict[str, Optional[str]]:
         """Convert messages to the format expected by the Anthropic client."""
 
@@ -222,6 +252,7 @@ class ChatPromptTemplate(BasePromptTemplate):
             "messages": [msg for msg in messages_populated if msg["role"] != "system"]
         }
         return messages_anthropic
+
 
     def to_langchain_template(self) -> "ChatPromptTemplate":
         """Convert the ChatPromptTemplate to a LangChain ChatPromptTemplate.

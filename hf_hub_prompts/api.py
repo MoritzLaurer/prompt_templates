@@ -16,9 +16,9 @@ def download_prompt(repo_id: str, filename: str, repo_type: Optional[str] = "mod
         repo_type (Optional[str]): The type of repository to download from. Defaults to "model".
 
     Returns:
-        Union[PromptTemplate, ChatPromptTemplate]: 
-            - PromptTemplate: If the YAML file contains a 'template' key
-            - ChatPromptTemplate: If the YAML file contains a 'messages' key
+        Union[PromptTemplate, ChatPromptTemplate]: The appropriate template type based on YAML content:
+            - PromptTemplate: If YAML contains a 'template' key
+            - ChatPromptTemplate: If YAML contains a 'messages' key
 
     Raises:
         ValueError: If the YAML file cannot be parsed or does not meet the expected structure.
