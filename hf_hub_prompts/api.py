@@ -2,12 +2,12 @@ from .prompt_template import BasePromptTemplate, PromptTemplate, ChatPromptTempl
 from huggingface_hub import hf_hub_download, HfApi
 import yaml
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
 
-def download_prompt(repo_id: str, filename: str, repo_type: Optional[str] = "model") -> BasePromptTemplate:
+def download_prompt(repo_id: str, filename: str, repo_type: Optional[str] = "model") -> Union[PromptTemplate, ChatPromptTemplate]:
     """Download a prompt from the Hugging Face Hub and create a PromptTemplate or ChatPromptTemplate.
 
     Args:
@@ -16,7 +16,9 @@ def download_prompt(repo_id: str, filename: str, repo_type: Optional[str] = "mod
         repo_type (Optional[str]): The type of repository to download from. Defaults to "model".
 
     Returns:
-        BasePromptTemplate: A PromptTemplate or ChatPromptTemplate object created from the downloaded prompt.
+        Union[PromptTemplate, ChatPromptTemplate]: 
+            - PromptTemplate: If the YAML file contains a 'template' key
+            - ChatPromptTemplate: If the YAML file contains a 'messages' key
 
     Raises:
         ValueError: If the YAML file cannot be parsed or does not meet the expected structure.

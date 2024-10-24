@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Literal
+from typing import Any, Dict, List, Optional, Literal, Union
 import re
 import json
 import yaml
@@ -13,7 +13,7 @@ SUPPORTED_CLIENT_FORMATS = ["openai", "anthropic"]  # TODO: add more clients
 class BasePromptTemplate(ABC):
     """An abstract base class for prompt templates."""
 
-    def __init__(self, full_yaml_content: Optional[Dict[str, Any]] = None, **kwargs: Any) -> None:
+    def __init__(self, full_yaml_content: Optional[Dict[str, Any]] = None, prompt_url: Optional[str] = None, **kwargs: Any) -> None:
         """Initialize a BasePromptTemplate instance.
 
         Args:
@@ -25,9 +25,10 @@ class BasePromptTemplate(ABC):
             setattr(self, key, value)
 
         self.full_yaml_content = full_yaml_content
+        self.prompt_url = prompt_url  
 
     @abstractmethod
-    def format_prompt(self, **kwargs: Any) -> Any:
+    def format_prompt(self, **kwargs: Any) -> Union[str, List[Dict[str, str]], Dict[str, Any]]:
         """Abstract method to format the prompt with the given variables."""
         pass
 
@@ -56,8 +57,10 @@ class BasePromptTemplate(ABC):
 
     # TODO: remove self.full_yaml_content from this or elsewhere? Very long and duplicative
     def __repr__(self) -> str:
-        attributes = ', '.join(f"{key}={value!r}" for key, value in self.__dict__.items())
+        attributes = ', '.join(f"{key}={repr(value)[:50]}..." if len(repr(value)) > 50 else f"{key}={repr(value)}"
+                            for key, value in self.__dict__.items())
         return f"{self.__class__.__name__}({attributes})"
+
 
     def _replace_placeholders(self, obj: Any, kwargs: Dict[str, Any]) -> Any:
         """Recursively replace placeholders in strings or nested structures like dicts or lists."""
@@ -83,17 +86,25 @@ class BasePromptTemplate(ABC):
     def _validate_input_variables(self, kwargs: Dict[str, Any]) -> None:
         """Validate that the provided input variables match the expected ones."""
         if hasattr(self, 'input_variables'):
-            if set(kwargs.keys()) != set(self.input_variables):
-                raise ValueError(
-                    "Your input variables do not match the prompt template's input variables from the YAML file.\n"
-                    f"You provided: {list(kwargs.keys())}.\n"
-                    f"The YAML file's input_variables are: {self.input_variables}.\n"
-                    f"See the YAML file at: {self.prompt_url}"
-                )
+            missing_vars = set(self.input_variables) - set(kwargs.keys())
+            extra_vars = set(kwargs.keys()) - set(self.input_variables)
+            
+            if missing_vars or extra_vars:
+                error_msg = []
+                error_msg.append(f"Expected input_variables from the prompt template: {self.input_variables}")
+                if missing_vars:
+                    error_msg.append(f"Missing variables: {list(missing_vars)}")
+                if extra_vars:
+                    error_msg.append(f"Unexpected variables: {list(extra_vars)}")
+                error_msg.append(f"Provided variables: {list(kwargs.keys())}")
+                if hasattr(self, 'prompt_url'):
+                    error_msg.append(f"Template URL: {self.prompt_url}")
+                
+                raise ValueError("\n".join(error_msg))
         else:
             logger.warning(
-                "It is recommended to provide 'input_variables' in the YAML file. "
-                "This enables input validation when populating prompt template."
+                "No input_variables specified in template. "
+                "Input validation is disabled."
             )
 
 
