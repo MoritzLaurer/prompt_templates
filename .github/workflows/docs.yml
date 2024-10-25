@@ -1,36 +1,45 @@
-name: Deploy Documentation
-
+name: Deploy Documentation 
 on:
   push:
     branches:
       - main
-
 permissions:
   contents: write
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Configure Git Credentials
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+      
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
-      - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV 
-      - uses: actions/cache@v4
+          python-version: '3.12'
+          
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
         with:
-          key: mkdocs-material-${{ env.cache_id }}
-          path: .cache
+          key: poetry-${{ hashFiles('poetry.lock') }}
+          path: |
+            ~/.cache/pypoetry
+            .venv
           restore-keys: |
-            mkdocs-material-
+            poetry-
+            
       - name: Install dependencies
         run: |
-          pip install mkdocs-material~=9.5.0
-          pip install "mkdocstrings[python]~=0.24.0"
-          pip install mkdocs-material-extensions~=1.3.1
-          pip install griffe~=0.38.1
-      - run: mkdocs gh-deploy --force
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+          poetry install --only docs
+          
+      - name: Build and deploy documentation
+        run: |
+          poetry run mkdocs gh-deploy --force
