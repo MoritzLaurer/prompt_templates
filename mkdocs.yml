@@ -1,0 +1,70 @@
+site_name: HF Hub Prompts
+site_description: A Python library for sharing and downloading prompts on the Hugging Face Hub
+repo_url: https://github.com/MoritzLaurer/hf_hub_prompts
+repo_name: moritzlaurer/hf_hub_prompts
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_object_full_path: false
+            heading_level: 2
+            members_order: source
+            separate_signature: true
+            filters: ["!^_"]
+            docstring_section_style: table
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - md_in_html
+
+nav:
+  - Home: 
+    - Overview: index.md
+    - Getting Started: getting-started.md
+  - API Reference:
+    - Downloading prompts: reference/hub_api.md
+    - Prompt templates: reference/prompt_templates.md
+    - Populated prompt: reference/populated_prompt.md

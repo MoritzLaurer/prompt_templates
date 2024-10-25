@@ -1,4 +1,4 @@
-from .prompt_template import BasePromptTemplate, PromptTemplate, ChatPromptTemplate
+from .prompt_templates import BasePromptTemplate, TextPromptTemplate, ChatPromptTemplate
 from huggingface_hub import hf_hub_download, HfApi
 import yaml
 import logging
@@ -11,7 +11,7 @@ def download_prompt(
     repo_id: str,
     filename: str,
     repo_type: Optional[str] = "model"
-) -> Union[PromptTemplate, ChatPromptTemplate]:
+) -> Union[TextPromptTemplate, ChatPromptTemplate]:
     """Download a prompt from the Hugging Face Hub and create a PromptTemplate or ChatPromptTemplate.
 
     Args:
@@ -21,7 +21,7 @@ def download_prompt(
 
     Returns:
         BasePromptTemplate: The appropriate template type based on YAML content:
-            - PromptTemplate: If YAML contains a 'template' key
+            - TextPromptTemplate: If YAML contains a 'template' key
             - ChatPromptTemplate: If YAML contains a 'messages' key
 
     Raises:
@@ -54,7 +54,7 @@ def download_prompt(
         return ChatPromptTemplate(**prompt_data, full_yaml_content=prompt_file, prompt_url=prompt_url)
     elif "template" in prompt_data:
         # It's a PromptTemplate
-        return PromptTemplate(**prompt_data, full_yaml_content=prompt_file, prompt_url=prompt_url)
+        return TextPromptTemplate(**prompt_data, full_yaml_content=prompt_file, prompt_url=prompt_url)
     else:
         raise ValueError(
             f"Invalid YAML structure under 'prompt': {list(prompt_data.keys())}. "
