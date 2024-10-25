@@ -107,10 +107,3 @@ from hf_hub_prompts import list_prompts
 prompts = list_prompts("username/repository")
 print(prompts)  # ['prompt1.yaml', 'prompt2.yaml', ...]
 ```
-
-## Next Steps
-
-- Learn about [YAML format](user-guide/yaml-format.md) for prompts
-- Explore detailed usage of [text templates](user-guide/templates/text-templates.md)
-- Discover [chat templates](user-guide/templates/chat-templates.md)
-- Check out our [examples](examples.md)
