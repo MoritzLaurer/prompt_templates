@@ -7,7 +7,11 @@ from typing import Any, Dict, List, Optional, Union
 logger = logging.getLogger(__name__)
 
 
-def download_prompt(repo_id: str, filename: str, repo_type: Optional[str] = "model") -> Union[PromptTemplate, ChatPromptTemplate]:
+def download_prompt(
+    repo_id: str,
+    filename: str,
+    repo_type: Optional[str] = "model"
+) -> Union[PromptTemplate, ChatPromptTemplate]:
     """Download a prompt from the Hugging Face Hub and create a PromptTemplate or ChatPromptTemplate.
 
     Args:
@@ -16,14 +20,13 @@ def download_prompt(repo_id: str, filename: str, repo_type: Optional[str] = "mod
         repo_type (Optional[str]): The type of repository to download from. Defaults to "model".
 
     Returns:
-        Union[PromptTemplate, ChatPromptTemplate]: The appropriate template type based on YAML content:
+        BasePromptTemplate: The appropriate template type based on YAML content:
             - PromptTemplate: If YAML contains a 'template' key
             - ChatPromptTemplate: If YAML contains a 'messages' key
 
     Raises:
         ValueError: If the YAML file cannot be parsed or does not meet the expected structure.
     """
-
     if not filename.endswith((".yaml", ".yml")):
         filename += ".yaml"
 
@@ -60,7 +63,11 @@ def download_prompt(repo_id: str, filename: str, repo_type: Optional[str] = "mod
         )
 
 
-def list_prompts(repo_id: str, repo_type: Optional[str] = "model", token: Optional[str] = None) -> List[str]:
+def list_prompts(
+    repo_id: str,
+    repo_type: Optional[str] = "model",
+    token: Optional[str] = None
+) -> List[str]:
     """List available prompt YAML files in a Hugging Face repository.
 
     Note:
@@ -74,11 +81,12 @@ def list_prompts(repo_id: str, repo_type: Optional[str] = "model", token: Option
     Returns:
         List[str]: A list of YAML filenames in the repository.
     """
-
     logger.info(
         "This function simply returns all YAML file names in the repository."
         "It does not check if a file is a valid prompt, which would require downloading it."
     )
     api = HfApi(token=token)
-    yaml_files = [file for file in api.list_repo_files(repo_id, repo_type=repo_type) if file.endswith((".yaml", ".yml"))]
+    yaml_files = [
+        file for file in api.list_repo_files(repo_id, repo_type=repo_type) if file.endswith((".yaml", ".yml"))
+    ]
     return yaml_files
