@@ -1,0 +1,148 @@
+:root {
+    --md-primary-fg-color: #2d3748;
+    --md-primary-fg-color--light: #4a5568;
+    --md-primary-fg-color--dark: #1a202c;
+    --md-accent-fg-color: #6366f1;
+  }
+  
+  /* Custom font settings */
+  body {
+    --md-text-font: "Inter";
+    --md-code-font: "Source Code Pro";
+  }
+  
+  /* Card-like styling for sections */
+  .md-typeset h2 {
+    font-weight: 600;
+    border-bottom: 1px solid rgba(0,0,0,.1);
+    padding-bottom: 0.5em;
+  }
+  
+  /* Button styling */
+  .md-typeset .md-button {
+    border-radius: 0.5rem;
+    padding: 0.625em 1.25em;
+  }
+  
+  /* Code block styling */
+  .highlight {
+    background: rgba(0,0,0,.05);
+    border-radius: 0.5rem;
+  }
+  
+  /* Dark mode adjustments */
+  [data-md-color-scheme="slate"] {
+    /* Header colors */
+    --md-primary-fg-color: #12141c;
+    --md-primary-fg-color--light: #1a1b24;
+    --md-primary-fg-color--dark: #0d0e14;
+    
+    /* Main content background */
+    --md-default-bg-color: #1e2029;
+    
+    /* Header and navigation background */
+    --md-header-bg-color: #12141c;
+    --md-footer-bg-color: #12141c;
+    --md-footer-bg-color--dark: #12141c;
+    
+    /* Text colors */
+    --md-typeset-color: rgba(255, 255, 255, 0.87);
+    --md-default-fg-color: rgba(255, 255, 255, 0.87);
+    --md-default-fg-color--light: rgba(255, 255, 255, 0.87);
+    --md-default-fg-color--lighter: rgba(255, 255, 255, 0.32);
+    --md-default-fg-color--lightest: rgba(255, 255, 255, 0.12);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Additional dark mode specific styles */
+  [data-md-color-scheme="slate"] .md-header {
+    background-color: #12141c;
+  }
+  
+  [data-md-color-scheme="slate"] .md-tabs {
+    background-color: #12141c;
+  }
+  
+  [data-md-color-scheme="slate"] .md-main {
+    background-color: #1e2029;
+  }
+  
+  [data-md-color-scheme="slate"] .md-content {
+    background-color: #1e2029;
+  }
+  
+  /* Ensure sharp text rendering in both modes */
+  .md-nav {
+    font-size: 0.7rem;
+    line-height: 1.3;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .md-nav__item {
+    text-rendering: optimizeLegibility;
+    padding: 0;
+    margin: 0;
+  }
+  
+  /* Specifically target the navigation text */
+  .md-nav__link {
+    text-shadow: none !important;
+    font-weight: 400;
+  }
+  
+  /* Make active navigation items more distinct */
+  .md-nav__link--active {
+    font-weight: 600;
+    color: var(--md-accent-fg-color) !important;
+  }
+  
+  /* Remove background from navigation items */
+  .md-nav__title {
+    background: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Additional specificity for dark mode */
+  [data-md-color-scheme="slate"] .md-nav__title {
+    background: none !important;
+    color: var(--md-default-fg-color) !important;
+  }
+  
+  /* Remove any potential overlay effects */
+  .md-nav__title::before,
+  .md-nav__title::after {
+    display: none !important;
+  }
+  
+  /* More aggressive removal of background from navigation titles */
+  .md-nav--lifted > .md-nav__list > .md-nav__item--active > .md-nav__link,
+  .md-nav__title[for] {
+    background: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: var(--md-default-fg-color) !important;
+  }
+  
+  /* Target specifically the background of navigation sections */
+  .md-nav--lifted > .md-nav__list > .md-nav__item--active {
+    background: none !important;
+  }
+  
+  /* Remove any gradients or overlays */
+  .md-nav--lifted > .md-nav__list > .md-nav__item--active::before,
+  .md-nav--lifted > .md-nav__list > .md-nav__item--active::after {
+    display: none !important;
+  }
+  
+  /* Ensure consistent spacing at the top level */
+  .md-nav--primary .md-nav__title {
+    background: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }

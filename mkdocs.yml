@@ -1,5 +1,6 @@
 site_name: HF Hub Prompts
 site_description: A Python library for sharing and downloading prompts on the Hugging Face Hub
+site_url: https://moritzlaurer.github.io/hf_hub_prompts/
 repo_url: https://github.com/MoritzLaurer/hf_hub_prompts
 repo_name: moritzlaurer/hf_hub_prompts
 
@@ -15,19 +16,43 @@ theme:
     - content.tabs.link
     - content.code.annotation
     - content.code.copy
+    - navigation.footer
+    - navigation.instant
+    - navigation.tracking
+    - toc.follow
+    - header.autohide
+  
+  # Update color scheme to match HF style
   palette:
-    - scheme: default
-      primary: indigo
-      accent: indigo
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
-    - scheme: slate
-      primary: indigo
-      accent: indigo
+    # Dark mode - matches HF's dark theme
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+  
+  icon:
+    repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/MoritzLaurer/hf_hub_prompts
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/hf-hub-prompts/
 
 plugins:
   - search
@@ -47,8 +72,13 @@ plugins:
             docstring_section_style: table
 
 markdown_extensions:
+  - pymdownx.emoji:
+      emoji_index: material.extensions.emoji.twemoji
+      emoji_generator: material.extensions.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - admonition
