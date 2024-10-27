@@ -56,8 +56,9 @@ jobs:
       continue-on-error: true  # Won't fail the PR
       run: poetry run pytest --cov=hf_hub_prompts --cov-report=xml
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+    - name: Upload results to Codecov
+      uses: codecov/codecov-action@v4
       with:
+        token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.xml
         fail_ci_if_error: false
