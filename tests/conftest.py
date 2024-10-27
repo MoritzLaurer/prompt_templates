@@ -1,7 +1,6 @@
-# tests/conftest.py
 import pytest
 import yaml
-from pathlib import Path
+
 
 @pytest.fixture
 def sample_text_yaml():
@@ -9,9 +8,10 @@ def sample_text_yaml():
         "prompt": {
             "template": "Hello {name}, how are you?",
             "input_variables": ["name"],
-            "metadata": {"type": "greeting"}
+            "metadata": {"type": "greeting"},
         }
     }
+
 
 @pytest.fixture
 def sample_chat_yaml():
@@ -19,12 +19,13 @@ def sample_chat_yaml():
         "prompt": {
             "messages": [
                 {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Hello {name}, how are you?"}
+                {"role": "user", "content": "Hello {name}, how are you?"},
             ],
             "input_variables": ["name"],
-            "metadata": {"type": "chat_greeting"}
+            "metadata": {"type": "chat_greeting"},
         }
     }
+
 
 @pytest.fixture
 def temp_yaml_file(tmp_path, sample_text_yaml):

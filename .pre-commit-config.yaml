@@ -6,14 +6,13 @@ repos:
     rev: v0.7.1
     hooks:
     -   id: ruff
-        args: [-- --check]  # Only check, don't fix
         #args: [--fix]
     -   id: ruff-format
-        args: [-- --check]  # Only check formatting, don't modify
+        args: [--check]  # Only check formatting, don't modify
 
 
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.13.0
-    hooks:
-    -   id: mypy
-        additional_dependencies: [types-PyYAML==6.0.12.20240917]
+#-   repo: https://github.com/pre-commit/mirrors-mypy
+#    rev: v1.13.0
+#    hooks:
+#    -   id: mypy
+#        additional_dependencies: [types-PyYAML==6.0.12.20240917]

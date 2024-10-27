@@ -1,16 +1,17 @@
-from .prompt_templates import BasePromptTemplate, TextPromptTemplate, ChatPromptTemplate
-from huggingface_hub import hf_hub_download, HfApi
-import yaml
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional, Union
+
+import yaml
+from huggingface_hub import HfApi, hf_hub_download
+
+from .prompt_templates import ChatPromptTemplate, TextPromptTemplate
+
 
 logger = logging.getLogger(__name__)
 
 
 def download_prompt(
-    repo_id: str,
-    filename: str,
-    repo_type: Optional[str] = "model"
+    repo_id: str, filename: str, repo_type: Optional[str] = "model"
 ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
     """Download a prompt from the Hugging Face Hub and create a PromptTemplate or ChatPromptTemplate.
 
@@ -33,10 +34,14 @@ def download_prompt(
     file_path = hf_hub_download(repo_id=repo_id, filename=filename, repo_type=repo_type)
 
     try:
-        with open(file_path, 'r') as file:
+        with open(file_path, "r") as file:
             prompt_file = yaml.safe_load(file)
     except yaml.YAMLError as e:
-        raise ValueError(f"Failed to parse the file '{filename}' as a valid YAML file. Please ensure the file is properly formatted.\nError details: {str(e)}")
+        raise ValueError(
+            f"Failed to parse the file '{filename}' as a valid YAML file. "
+            f"Please ensure the file is properly formatted.\n"
+            f"Error details: {str(e)}"
+        ) from e
 
     # Validate YAML keys to enforce minimal common standard structure
     if "prompt" not in prompt_file:
@@ -63,11 +68,7 @@ def download_prompt(
         )
 
 
-def list_prompts(
-    repo_id: str,
-    repo_type: Optional[str] = "model",
-    token: Optional[str] = None
-) -> List[str]:
+def list_prompts(repo_id: str, repo_type: Optional[str] = "model", token: Optional[str] = None) -> List[str]:
     """List available prompt YAML files in a Hugging Face repository.
 
     Note:

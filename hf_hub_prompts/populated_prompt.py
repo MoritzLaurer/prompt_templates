@@ -1,21 +1,24 @@
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Literal, Union
+from typing import Any, Dict, List, Union
+
 
 SUPPORTED_CLIENT_FORMATS = ["openai", "anthropic"]  # TODO: add more clients
+
 
 @dataclass
 class PopulatedPrompt:
     """A class representing a populated prompt.
-    
+
     Examples:
         >>> # For standard prompts
         >>> prompt = template.populate_template(name="Alice")
         >>> text = prompt.content
-        >>> 
+        >>>
         >>> # For chat prompts
         >>> prompt = chat_template.populate_template(name="Alice")
         >>> messages = prompt.format_for_client(client="anthropic")
     """
+
     content: Union[str, List[Dict[str, Any]]]
 
     def format_for_client(self, client: str = "openai") -> Union[List[Dict[str, Any]], Dict[str, Any]]:
@@ -54,6 +57,6 @@ class PopulatedPrompt:
         """Format messages for the Anthropic client."""
         messages_anthropic = {
             "system": next((msg["content"] for msg in messages if msg["role"] == "system"), None),
-            "messages": [msg for msg in messages if msg["role"] != "system"]
+            "messages": [msg for msg in messages if msg["role"] != "system"],
         }
         return messages_anthropic
