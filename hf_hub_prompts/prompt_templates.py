@@ -140,7 +140,7 @@ class TextPromptTemplate(BasePromptTemplate):
         populated_prompt = self._fill_placeholders(self.template, input_variables)
         return PopulatedPrompt(content=populated_prompt)
 
-    def to_langchain_template(self) -> "PromptTemplate":
+    def to_langchain_template(self) -> "LC_PromptTemplate":
         """Convert the TextPromptTemplate to a LangChain PromptTemplate.
 
         Returns:
@@ -205,7 +205,7 @@ class ChatPromptTemplate(BasePromptTemplate):
         prompt = self.populate_template(**input_variables)
         return prompt.format_for_client(client)
 
-    def to_langchain_template(self) -> "ChatPromptTemplate":
+    def to_langchain_template(self) -> "LC_ChatPromptTemplate":
         """Convert the ChatPromptTemplate to a LangChain ChatPromptTemplate.
 
         Returns:
