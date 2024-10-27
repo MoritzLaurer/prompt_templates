@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Match, Optional, Union
 
 import yaml
 
@@ -80,7 +80,7 @@ class BasePromptTemplate(ABC):
 
         if isinstance(template_part, str):
             # fill placeholders in strings
-            def replacer(match):
+            def replacer(match: Match[str]) -> str:
                 key = match.group(1).strip()
                 return str(input_variables.get(key, match.group(0)))
 
@@ -120,6 +120,12 @@ class BasePromptTemplate(ABC):
 
 class TextPromptTemplate(BasePromptTemplate):
     """A class representing a standard prompt template."""
+
+    # Declare types for mypy because attributes are set dynamically via setattr in parent's __init__.
+    # These declarations don't create the attributes, they just tell mypy about their types.
+    template: str
+    input_variables: Optional[List[str]]
+    metadata: Optional[Dict[str, Any]]
 
     def __init__(self, full_yaml_content: Optional[Dict[str, Any]] = None, **kwargs: Any) -> None:
         if "template" not in kwargs:
@@ -166,6 +172,12 @@ class TextPromptTemplate(BasePromptTemplate):
 
 class ChatPromptTemplate(BasePromptTemplate):
     """A class representing a chat prompt template that can be formatted and used with various LLM clients."""
+
+    # Declare types for mypy because attributes are set dynamically via setattr in parent's __init__.
+    # These declarations don't create the attributes, they just tell mypy about their types.
+    messages: List[Dict[str, Any]]
+    input_variables: Optional[List[str]]
+    metadata: Optional[Dict[str, Any]]
 
     def __init__(self, full_yaml_content: Optional[Dict[str, Any]] = None, **kwargs: Any) -> None:
         if "messages" not in kwargs:
