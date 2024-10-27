@@ -23,3 +23,8 @@ site/
 
 # MacOS files
 .DS_Store
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/

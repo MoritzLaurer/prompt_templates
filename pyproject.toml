@@ -32,17 +32,115 @@ inference = [
     "transformers", "accelerate"
 ]
 
-[tool.poetry.group.dev.dependencies]
-# poetry add ipywidgets jupyter --group dev
-ipykernel = "^6.29.5"
-ipywidgets = "^8.1.5"
-jupyter = "^1.1.1"
-
 [tool.poetry.group.docs.dependencies]
 mkdocstrings = {extras = ["python"], version = "^0.24.0"}
 mkdocs-material-extensions = "^1.3.1"
 griffe = "^0.38.1"
 mkdocs-material = {version = "^9.5.0", extras = ["imaging"]}
+
+[tool.poetry.group.dev.dependencies]
+# poetry add ipywidgets jupyter --group dev
+ipykernel = "^6.29.5"
+ipywidgets = "^8.1.5"
+jupyter = "^1.1.1"
+pytest = "^8.3.3"
+pytest-cov = "^5.0.0"
+pytest-mock = "^3.14.0"
+ruff = "^0.7.1"
+mypy = "^1.13.0"
+types-pyyaml = "^6.0.12.20240917"
+
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = "test_*.py"
+pythonpath = [".","src"]
+addopts = [
+    "--verbose",
+    "--cov=hf_hub_prompts",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-branch",
+    "--cov-fail-under=80",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["hf_hub_prompts"]
+omit = [
+    "tests/*",
+    "**/__init__.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 50
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "raise ImportError",
+    "except ImportError:",
+]
+
+
+[tool.ruff]
+# Line length matches commonly used defaults
+line-length = 119
+indent-width = 4
+
+# Common, practical rule sets
+select = [
+    "E",   # pycodestyle errors (basic Python style)
+    "F",   # pyflakes (detect logical errors)
+    "I",   # isort (import sorting)
+    "W",   # pycodestyle warnings
+    "B",   # flake8-bugbear (detect bugs/design problems)
+    #"UP",  # pyupgrade (modernize Python code)
+    "N",   # pep8-naming (naming conventions)
+    "C4",  # comprehensions (better list/dict comprehensions)
+
+]
+
+# Commonly ignored rules
+ignore = [
+    "E501",    # line length violations
+    "B905",    # strict parameter type checking
+    "N999",    # invalid module name
+]
+
+# Assume Python 3.10
+target-version = "py310"
+
+# Exclude files/folders
+exclude = [
+    ".git",
+    ".venv",
+    "build",
+    "dist",
+    "examples/example-usage.ipynb",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["hf_hub_prompts"]
+lines-after-imports = 2
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"  # Use Google-style docstrings
+
+
+[tool.mypy]
+# Type checking
+python_version = "3.10"
+strict = true
+ignore_missing_imports = true
+
 
 [build-system]
 requires = ["poetry-core"]
