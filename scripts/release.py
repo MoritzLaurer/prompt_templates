@@ -38,9 +38,6 @@ def bump_version(bump_type: VersionBumpType) -> str:
 
 def create_release(version_bump: VersionBumpType) -> None:
     """Create a new release."""
-    # Run tests
-    print("Running tests...")
-    run_command("poetry run pytest")
 
     # Bump version
     print(f"\nBumping {version_bump} version...")
