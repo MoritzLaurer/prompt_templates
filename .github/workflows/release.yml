@@ -4,6 +4,24 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'  # Matches v1.0.0, v1.0.0-beta, etc.
+  
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type (or skip to use current version)'
+        required: true
+        type: choice
+        options:
+          - skip
+          - patch
+          - minor
+          - major
+        default: 'skip'
+      prerelease:
+        description: 'Pre-release'
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   release:
@@ -39,7 +57,35 @@ jobs:
         run: |
           poetry run pytest --verbose --cov=hf_hub_prompts --cov-report=term-missing --cov-report=xml
         continue-on-error: true
-
+          
+      # Only bump version if specifically requested
+      - name: Bump version if requested
+        if: github.event_name == 'workflow_dispatch' && inputs.version_bump != 'skip'
+        run: |
+          # Bump version
+          poetry version ${{ inputs.version_bump }}
+          
+          # Get the new version
+          NEW_VERSION=$(poetry version -s)
+          
+          # Create tag
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add pyproject.toml
+          git commit -m "chore: bump version to ${NEW_VERSION}"
+          git tag -a "v${NEW_VERSION}" -m "Release version ${NEW_VERSION}"
+          
+          # Push changes
+          git push origin main
+          git push origin "v${NEW_VERSION}"
+          
+      # Always get current version for later steps
+      - name: Get current version
+        run: |
+          CURRENT_VERSION=$(poetry version -s)
+          echo "Current version: ${CURRENT_VERSION}"
+          echo "CURRENT_VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
+          
       - name: Build package
         run: poetry build
         
@@ -56,12 +102,13 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: "v${{ env.CURRENT_VERSION }}"  # Use current version
           body: ${{steps.changelog.outputs.changelog}}
           files: |
             dist/*.whl
             dist/*.tar.gz
           draft: false
-          prerelease: ${{ contains(github.ref, '-') }}  # true for v1.0.0-beta type tags
+          prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || contains(github.ref, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
