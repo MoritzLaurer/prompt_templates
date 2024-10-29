@@ -1,0 +1,77 @@
+{
+    "categories": [
+      {
+        "title": "## 🚀 Features",
+        "labels": ["feature", "enhancement"],
+        "commits": ["^feat:"]
+      },
+      {
+        "title": "## ⚠️ Breaking Changes",
+        "labels": ["breaking"],
+        "commits": ["BREAKING CHANGE:", "BREAKING-CHANGE:"]
+      },
+      {
+        "title": "## 🐛 Bug Fixes",
+        "labels": ["fix", "bug"],
+        "commits": ["^fix:"]
+      },
+      {
+        "title": "## 📝 Documentation",
+        "labels": ["documentation", "docs"],
+        "commits": ["^docs:"]
+      },
+      {
+        "title": "## ⚡ Performance",
+        "labels": ["performance"],
+        "commits": ["^perf:"]
+      },
+      {
+        "title": "## 🧪 Tests",
+        "labels": ["test"],
+        "commits": ["^test:"]
+      },
+      {
+        "title": "## ♻️ Refactoring",
+        "labels": ["refactor"],
+        "commits": ["^refactor:"]
+      },
+      {
+        "title": "## 🔧 Maintenance",
+        "labels": ["chore", "dependencies"],
+        "commits": ["^chore:"]
+      },
+      {
+        "title": "## 💄 Style",
+        "labels": ["style"],
+        "commits": ["^style:"]
+      },
+      {
+        "title": "## 🏗️ Build",
+        "labels": ["build"],
+        "commits": ["^build:"]
+      },
+      {
+        "title": "## 👥 Contributors",
+        "labels": ["contributors"],
+        "commits": ["^contributor:"]
+      },
+      {
+        "title": "## Other Changes",
+        "labels": ["other"],
+        "commits": [".*"]
+      }
+    ],
+    "template": "${{CHANGES}}\n\n## 📦 Full Changelog\n\nFor a complete list of changes, see the [full diff](https://github.com/${{OWNER}}/${{REPOSITORY}}/compare/${{FROM_TAG}}...${{TO_TAG}}).",
+    "pr_template": "- ${{TITLE}} (#${{NUMBER}})",
+    "commit_template": "- ${{SUBJECT}}",
+    "empty_template": "No changes in this category",
+    "sort": "ASC",
+    "transformers": {
+      "commit": [
+        {
+          "pattern": "^([^:]+):\\s*(.+)$",
+          "target": "- $2"
+        }
+      ]
+    }
+  }

@@ -7,7 +7,13 @@ repos:
     -   id: ruff
         args: [--fix]
     -   id: ruff-format
-        #args: [--check]  # Only check formatting, don't modify
+
+# Commitizen for conventional commit messages
+-   repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.18.4
+    hooks:
+    -   id: commitizen
+        stages: [commit-msg]
 
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
