@@ -66,12 +66,10 @@
     "commit_template": "- ${{SUBJECT}}",
     "empty_template": "No changes in this category",
     "sort": "ASC",
-    "transformers": {
-      "commit": [
-        {
-          "pattern": "^([^:]+):\\s*(.+)$",
-          "target": "- $2"
+    "transform": {
+        "commit": {
+            "pattern": "^(.+?)(?:\\((.+)\\))?:\\s*(.+)$",
+            "target": "- [$1] $3"
         }
-      ]
     }
   }
