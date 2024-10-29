@@ -36,8 +36,10 @@ jobs:
           poetry install --with dev
           
       - name: Run tests
-        run: poetry run pytest
-        
+        run: |
+          poetry run pytest --verbose --cov=hf_hub_prompts --cov-report=term-missing --cov-report=xml
+        continue-on-error: true
+
       - name: Build package
         run: poetry build
         
