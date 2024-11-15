@@ -23,35 +23,36 @@ logger = logging.getLogger(__name__)
 class BasePromptTemplate(ABC):
     """An abstract base class for prompt templates."""
 
-    # Type hints for standard attributes
+    # Type hints for optional standard attributes shared across all template types
     metadata: Optional[Dict[str, Any]]
     input_variables: Optional[List[str]]
-    prompt_url: Optional[str]
-    additional_data: Dict[str, Any]
+    other_data: Dict[str, Any]
 
     def __init__(self, prompt_data: Dict[str, Any], prompt_url: Optional[str] = None) -> None:
-        # Set standard attributes
+        # Set template-specific required attributes
+        self._set_required_attributes_for_template_type(prompt_data)
+
+        # Set optional standard attributes that are the same across all templates
         self.metadata = prompt_data.get("metadata")
         self.input_variables = prompt_data.get("input_variables")
-        self.prompt_url = prompt_url
 
-        # Set template-specific required attributes
-        self._set_required_attributes(prompt_data)
-
-        # Store any additional data as a separate dictionary
-        self.additional_data = {
+        # Store any additional optional data that might be present in the prompt data
+        self.other_data = {
             k: v
             for k, v in prompt_data.items()
-            if k not in ["metadata", "input_variables"] + self._get_required_keys()
+            if k not in ["metadata", "input_variables"] + self._get_required_attributes_for_template_type()
         }
 
+        if prompt_url is not None:
+            self.other_data["prompt_url"] = prompt_url
+
     @abstractmethod
-    def _get_required_keys(self) -> List[str]:
+    def _get_required_attributes_for_template_type(self) -> List[str]:
         """Return list of required keys for this template type."""
         pass
 
     @abstractmethod
-    def _set_required_attributes(self, prompt_data: Dict[str, Any]) -> None:
+    def _set_required_attributes_for_template_type(self, prompt_data: Dict[str, Any]) -> None:
         """Set required attributes for this template type."""
         pass
 
@@ -69,15 +70,13 @@ class BasePromptTemplate(ABC):
 
     def display(self, format: Literal["json", "yaml"] = "json") -> None:
         """Display the prompt configuration in the specified format."""
-        # Create a dict of all attributes except prompt_url and additional_data
-        display_dict = {k: v for k, v in self.__dict__.items() if k not in ["prompt_url", "additional_data"] or v}
+        # Create a dict of all attributes except other_data
+        display_dict = {k: v for k, v in self.__dict__.items() if k not in ["other_data"] or v}
 
         if format == "json":
             print(json.dumps(display_dict, indent=2))
         elif format == "yaml":
             print(yaml.dump(display_dict, default_flow_style=False, sort_keys=False))
-        else:
-            raise ValueError(f"Unsupported format: {format}")
 
     def to_dict(self) -> Dict[str, Any]:
         return self.__dict__
@@ -127,8 +126,8 @@ class BasePromptTemplate(ABC):
                     error_msg.append(f"Missing variables: {list(missing_vars)}")
                 if extra_vars:
                     error_msg.append(f"Unexpected variables: {list(extra_vars)}")
-                if self.prompt_url:
-                    error_msg.append(f"Template URL: {self.prompt_url}")
+                if self.other_data["prompt_url"]:
+                    error_msg.append(f"Template URL: {self.other_data["prompt_url"]}")
 
                 raise ValueError("\n".join(error_msg))
         else:
@@ -141,10 +140,10 @@ class TextPromptTemplate(BasePromptTemplate):
     # Type hints for template-specific attributes
     template: str
 
-    def _get_required_keys(self) -> List[str]:
+    def _get_required_attributes_for_template_type(self) -> List[str]:
         return ["template"]
 
-    def _set_required_attributes(self, prompt_data: Dict[str, Any]) -> None:
+    def _set_required_attributes_for_template_type(self, prompt_data: Dict[str, Any]) -> None:
         if "template" not in prompt_data:
             raise ValueError("You must provide 'template' in prompt_data")
         self.template = prompt_data["template"]
@@ -189,10 +188,10 @@ class ChatPromptTemplate(BasePromptTemplate):
     # Type hints for template-specific attributes
     messages: List[Dict[str, Any]]
 
-    def _get_required_keys(self) -> List[str]:
+    def _get_required_attributes_for_template_type(self) -> List[str]:
         return ["messages"]
 
-    def _set_required_attributes(self, prompt_data: Dict[str, Any]) -> None:
+    def _set_required_attributes_for_template_type(self, prompt_data: Dict[str, Any]) -> None:
         if "messages" not in prompt_data:
             raise ValueError("You must provide 'messages' in prompt_data")
         self.messages = prompt_data["messages"]
