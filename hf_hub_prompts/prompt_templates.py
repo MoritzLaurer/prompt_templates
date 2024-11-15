@@ -23,15 +23,37 @@ logger = logging.getLogger(__name__)
 class BasePromptTemplate(ABC):
     """An abstract base class for prompt templates."""
 
-    def __init__(
-        self, full_yaml_content: Optional[Dict[str, Any]] = None, prompt_url: Optional[str] = None, **kwargs: Any
-    ) -> None:
-        # Set all YAML file keys as attributes
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+    # Type hints for standard attributes
+    metadata: Optional[Dict[str, Any]]
+    input_variables: Optional[List[str]]
+    prompt_url: Optional[str]
+    additional_data: Dict[str, Any]
 
-        self.full_yaml_content = full_yaml_content
+    def __init__(self, prompt_data: Dict[str, Any], prompt_url: Optional[str] = None) -> None:
+        # Set standard attributes
+        self.metadata = prompt_data.get("metadata")
+        self.input_variables = prompt_data.get("input_variables")
         self.prompt_url = prompt_url
+
+        # Set template-specific required attributes
+        self._set_required_attributes(prompt_data)
+
+        # Store any additional data as a separate dictionary
+        self.additional_data = {
+            k: v
+            for k, v in prompt_data.items()
+            if k not in ["metadata", "input_variables"] + self._get_required_keys()
+        }
+
+    @abstractmethod
+    def _get_required_keys(self) -> List[str]:
+        """Return list of required keys for this template type."""
+        pass
+
+    @abstractmethod
+    def _set_required_attributes(self, prompt_data: Dict[str, Any]) -> None:
+        """Set required attributes for this template type."""
+        pass
 
     @abstractmethod
     def populate_template(self, **input_variables: Any) -> PopulatedPrompt:
@@ -46,18 +68,14 @@ class BasePromptTemplate(ABC):
         pass
 
     def display(self, format: Literal["json", "yaml"] = "json") -> None:
-        """Display the full prompt YAML file content in the specified format.
+        """Display the prompt configuration in the specified format."""
+        # Create a dict of all attributes except prompt_url and additional_data
+        display_dict = {k: v for k, v in self.__dict__.items() if k not in ["prompt_url", "additional_data"] or v}
 
-        Args:
-            format (Literal['json', 'yaml']): The format to display ('json' or 'yaml'). Defaults to 'json'.
-
-        Raises:
-            ValueError: If an unsupported format is specified.
-        """
         if format == "json":
-            print(json.dumps(self.full_yaml_content, indent=2))
+            print(json.dumps(display_dict, indent=2))
         elif format == "yaml":
-            print(yaml.dump(self.full_yaml_content, default_flow_style=False, sort_keys=False))
+            print(yaml.dump(display_dict, default_flow_style=False, sort_keys=False))
         else:
             raise ValueError(f"Unsupported format: {format}")
 
@@ -98,7 +116,7 @@ class BasePromptTemplate(ABC):
 
     def _validate_input_variables(self, input_variables: Dict[str, Any]) -> None:
         """Validate that the provided input variables match the expected ones."""
-        if hasattr(self, "input_variables"):
+        if self.input_variables:
             missing_vars = set(self.input_variables) - set(input_variables.keys())
             extra_vars = set(input_variables.keys()) - set(self.input_variables)
 
@@ -109,29 +127,27 @@ class BasePromptTemplate(ABC):
                     error_msg.append(f"Missing variables: {list(missing_vars)}")
                 if extra_vars:
                     error_msg.append(f"Unexpected variables: {list(extra_vars)}")
-                error_msg.append(f"Provided variables: {list(input_variables.keys())}")
                 if self.prompt_url:
                     error_msg.append(f"Template URL: {self.prompt_url}")
 
                 raise ValueError("\n".join(error_msg))
         else:
-            logger.warning("No input_variables specified in template. " "Input validation is disabled.")
+            logger.warning("No input_variables specified in template. Input validation is disabled.")
 
 
 class TextPromptTemplate(BasePromptTemplate):
     """A class representing a standard prompt template."""
 
-    # Declare types for mypy because attributes are set dynamically via setattr in parent's __init__.
-    # These declarations don't create the attributes, they just tell mypy about their types.
+    # Type hints for template-specific attributes
     template: str
-    input_variables: Optional[List[str]]
-    metadata: Optional[Dict[str, Any]]
 
-    def __init__(self, full_yaml_content: Optional[Dict[str, Any]] = None, **kwargs: Any) -> None:
-        if "template" not in kwargs:
-            raise ValueError("You must always provide 'template' to TextPromptTemplate.")
+    def _get_required_keys(self) -> List[str]:
+        return ["template"]
 
-        super().__init__(full_yaml_content=full_yaml_content, **kwargs)
+    def _set_required_attributes(self, prompt_data: Dict[str, Any]) -> None:
+        if "template" not in prompt_data:
+            raise ValueError("You must provide 'template' in prompt_data")
+        self.template = prompt_data["template"]
 
     def populate_template(self, **input_variables: Any) -> PopulatedPrompt:
         """Populate the prompt by replacing placeholders with provided values.
@@ -158,32 +174,28 @@ class TextPromptTemplate(BasePromptTemplate):
         try:
             from langchain.prompts import PromptTemplate as LC_PromptTemplate
         except ImportError:
-            raise ImportError(
-                "LangChain is not installed. Please install it with 'pip install langchain' to use this feature."
-            ) from None
+            raise ImportError("LangChain is not installed. Please install it with 'pip install langchain'") from None
 
-        lc_prompt_template = LC_PromptTemplate(
+        return LC_PromptTemplate(
             template=self.template,
-            input_variables=self.input_variables if hasattr(self, "input_variables") else None,
-            metadata=self.metadata if hasattr(self, "metadata") else None,
+            input_variables=self.input_variables,
+            metadata=self.metadata,
         )
-        return lc_prompt_template
 
 
 class ChatPromptTemplate(BasePromptTemplate):
     """A class representing a chat prompt template that can be formatted and used with various LLM clients."""
 
-    # Declare types for mypy because attributes are set dynamically via setattr in parent's __init__.
-    # These declarations don't create the attributes, they just tell mypy about their types.
+    # Type hints for template-specific attributes
     messages: List[Dict[str, Any]]
-    input_variables: Optional[List[str]]
-    metadata: Optional[Dict[str, Any]]
 
-    def __init__(self, full_yaml_content: Optional[Dict[str, Any]] = None, **kwargs: Any) -> None:
-        if "messages" not in kwargs:
-            raise ValueError("You must always provide 'messages' to ChatPromptTemplate.")
+    def _get_required_keys(self) -> List[str]:
+        return ["messages"]
 
-        super().__init__(full_yaml_content=full_yaml_content, **kwargs)
+    def _set_required_attributes(self, prompt_data: Dict[str, Any]) -> None:
+        if "messages" not in prompt_data:
+            raise ValueError("You must provide 'messages' in prompt_data")
+        self.messages = prompt_data["messages"]
 
     def populate_template(self, **input_variables: Any) -> PopulatedPrompt:
         """Populate the prompt messages by replacing placeholders with provided values.
@@ -228,13 +240,10 @@ class ChatPromptTemplate(BasePromptTemplate):
         try:
             from langchain.prompts import ChatPromptTemplate as LC_ChatPromptTemplate
         except ImportError:
-            raise ImportError(
-                "LangChain is not installed. Please install it with 'pip install langchain' to use this feature."
-            ) from None
+            raise ImportError("LangChain is not installed. Please install it with 'pip install langchain'") from None
 
-        lc_chat_prompt_template = LC_ChatPromptTemplate(
+        return LC_ChatPromptTemplate(
             messages=[(msg["role"], msg["content"]) for msg in self.messages],
-            input_variables=self.input_variables if hasattr(self, "input_variables") else None,
-            metadata=self.metadata if hasattr(self, "metadata") else None,
+            input_variables=self.input_variables,
+            metadata=self.metadata,
         )
-        return lc_chat_prompt_template

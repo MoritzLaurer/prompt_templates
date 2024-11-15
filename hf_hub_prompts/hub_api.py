@@ -55,14 +55,12 @@ def download_prompt(
 
     # Determine which PromptTemplate class to instantiate
     if "messages" in prompt_data:
-        # It's a ChatPromptTemplate
-        return ChatPromptTemplate(**prompt_data, full_yaml_content=prompt_file, prompt_url=prompt_url)
+        return ChatPromptTemplate(prompt_data=prompt_data, prompt_url=prompt_url)
     elif "template" in prompt_data:
-        # It's a PromptTemplate
-        return TextPromptTemplate(**prompt_data, full_yaml_content=prompt_file, prompt_url=prompt_url)
+        return TextPromptTemplate(prompt_data=prompt_data, prompt_url=prompt_url)
     else:
         raise ValueError(
-            f"Invalid YAML structure under 'prompt': {list(prompt_data.keys())}. "
+            f"Invalid YAML structure under 'prompt' key: {list(prompt_data.keys())}. "
             "The YAML file must contain either 'messages' or 'template' key under 'prompt'. "
             "Please refer to the documentation for a compatible YAML example."
         )
