@@ -114,7 +114,21 @@ class BasePromptTemplate(ABC):
         return template_part  # For non-string, non-dict, non-list types, return as is
 
     def _validate_input_variables(self, input_variables: Dict[str, Any]) -> None:
-        """Validate that the provided input variables match the expected ones."""
+        """Validate that the provided input variables match the expected ones.
+
+        Args:
+            input_variables: Dictionary of variables to validate.
+
+        Behavior:
+            - If template.input_variables is defined:
+                Ensures exact match between provided and expected variables.
+            - If template.input_variables is not defined:
+                Skips validation (logs warning) and accepts any variables.
+
+        Raises:
+            ValueError: If template.input_variables is defined and there are
+                missing or unexpected variables.
+        """
         if self.input_variables:
             missing_vars = set(self.input_variables) - set(input_variables.keys())
             extra_vars = set(input_variables.keys()) - set(self.input_variables)
@@ -131,7 +145,11 @@ class BasePromptTemplate(ABC):
 
                 raise ValueError("\n".join(error_msg))
         else:
-            logger.warning("No input_variables specified in template. Input validation is disabled.")
+            logger.warning(
+                "No input_variables specified in template. Input validation is disabled. "
+                "To enable validation, specify input_variables when creating the template. "
+                "Without validation, misspelled variable names will be left unreplaced in the output."
+            )
 
 
 class TextPromptTemplate(BasePromptTemplate):
@@ -172,8 +190,8 @@ class TextPromptTemplate(BasePromptTemplate):
         """
         try:
             from langchain.prompts import PromptTemplate as LC_PromptTemplate
-        except ImportError:
-            raise ImportError("LangChain is not installed. Please install it with 'pip install langchain'") from None
+        except ImportError as e:
+            raise ImportError("LangChain is not installed. Please install it with 'pip install langchain'") from e
 
         return LC_PromptTemplate(
             template=self.template,
@@ -219,11 +237,21 @@ class ChatPromptTemplate(BasePromptTemplate):
 
         Args:
             client (str): The client format to use ('openai', 'anthropic'). Defaults to 'openai'.
-            **input_variables: The values to fill placeholders in the messages.
+            **input_variables: The variables to fill into the template. For example, if your template
+                expects variables like 'name' and 'age', pass them as keyword arguments:
+
+                >>> messages = template.create_messages(client="openai", name="Alice", age=30)
 
         Returns:
             Union[List[Dict[str, Any]], Dict[str, Any]]: Populated and formatted messages.
         """
+        if "client" in input_variables:
+            logger.warning(
+                f"'client' was passed both as a parameter for the LLM inference client ('{client}') and in input_variables "
+                f"('{input_variables['client']}'). The first parameter version will be used for formatting, "
+                "while the second input_variables version will be used in template population."
+            )
+
         prompt = self.populate_template(**input_variables)
         return prompt.format_for_client(client)
 
@@ -238,8 +266,8 @@ class ChatPromptTemplate(BasePromptTemplate):
         """
         try:
             from langchain.prompts import ChatPromptTemplate as LC_ChatPromptTemplate
-        except ImportError:
-            raise ImportError("LangChain is not installed. Please install it with 'pip install langchain'") from None
+        except ImportError as e:
+            raise ImportError("LangChain is not installed. Please install it with 'pip install langchain'") from e
 
         return LC_ChatPromptTemplate(
             messages=[(msg["role"], msg["content"]) for msg in self.messages],
