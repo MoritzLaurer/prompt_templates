@@ -13,7 +13,39 @@ logger = logging.getLogger(__name__)
 def download_prompt(
     repo_id: str, filename: str, repo_type: Optional[str] = "model"
 ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
-    """Download a prompt from the Hugging Face Hub and create a PromptTemplate or ChatPromptTemplate.
+    """Download a prompt template from the Hugging Face Hub.
+
+    Examples:
+        Download and use a text prompt template:
+        >>> from hf_hub_prompts import download_prompt
+        >>> # Download translation prompt
+        >>> template = download_prompt(
+        ...     repo_id="MoritzLaurer/example_prompts",
+        ...     filename="translate.yaml"
+        ... )
+        >>> # Inspect the template
+        >>> template.template
+        'Translate the following text to {language}:\\n{text}'
+        >>> # Populate the template
+        >>> prompt = template.populate_template(
+        ...     language="French",
+        ...     text="Hello world!"
+        ... )
+
+        Download and use a chat prompt template:
+        >>> # Download code teaching prompt
+        >>> chat_template = download_prompt(
+        ...     repo_id="MoritzLaurer/example_prompts",
+        ...     filename="code_teacher.yaml"
+        ... )
+        >>> # Inspect the template
+        >>> chat_template.messages[1]["content"]
+        'Explain what {concept} is in {programming_language}.'
+        >>> # Populate the template
+        >>> chat_prompt = chat_template.populate_template(
+        ...     concept="list comprehension",
+        ...     programming_language="Python"
+        ... )
 
     Args:
         repo_id (str): The repository ID on Hugging Face Hub (e.g., 'username/repo_name').
@@ -69,16 +101,24 @@ def download_prompt(
 def list_prompts(repo_id: str, repo_type: Optional[str] = "model", token: Optional[str] = None) -> List[str]:
     """List available prompt YAML files in a Hugging Face repository.
 
+    Examples:
+        List all prompts in a repository:
+        >>> from hf_hub_prompts import list_prompts
+        >>> files = list_prompts("MoritzLaurer/example_prompts")
+        >>> files
+        ['code_teacher.yaml', 'translate.yaml']
+
     Note:
         This function simply returns all YAML file names in the repository.
         It does not check if a file is a valid prompt, which would require downloading it.
 
     Args:
         repo_id (str): The repository ID on Hugging Face Hub.
+        repo_type (Optional[str]): The type of repository. Defaults to "model".
         token (Optional[str]): An optional authentication token. Defaults to None.
 
     Returns:
-        List[str]: A list of YAML filenames in the repository.
+        List[str]: A list of YAML filenames in the repository sorted alphabetically.
     """
     logger.info(
         "This function simply returns all YAML file names in the repository."
@@ -88,4 +128,4 @@ def list_prompts(repo_id: str, repo_type: Optional[str] = "model", token: Option
     yaml_files = [
         file for file in api.list_repo_files(repo_id, repo_type=repo_type) if file.endswith((".yaml", ".yml"))
     ]
-    return yaml_files
+    return sorted(yaml_files)

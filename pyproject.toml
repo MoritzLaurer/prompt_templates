@@ -64,10 +64,16 @@ addopts = [
     "--cov-report=html",
     "--cov-branch",
     "--cov-fail-under=50",
+    "--doctest-modules",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::UserWarning",
+]
+doctest_optionflags = [
+    "NORMALIZE_WHITESPACE",
+    "IGNORE_EXCEPTION_DETAIL",
+    "ELLIPSIS"
 ]
 
 [tool.coverage.run]
