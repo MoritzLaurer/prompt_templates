@@ -1,6 +1,6 @@
 # Downloading prompts
 
-This section documents the functions for downloading and listing prompts from the Hugging Face Hub.
+This section documents the functions for downloading and listing prompt templates from the Hugging Face Hub.
 
 ::: hf_hub_prompts.hub_api
     options:

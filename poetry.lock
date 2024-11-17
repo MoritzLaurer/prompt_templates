@@ -5605,4 +5605,4 @@ inference = ["accelerate", "anthropic", "boto3", "langchain-anthropic", "langcha
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "cfc30649d9eec5c325fa54e2968c1c5f84d4830f21166175aaed61e1acc760ea"
+content-hash = "c8180b0bd06a76aa2cb40cb92f7238c35508deb74e02019075af0bee0fe3d8a8"

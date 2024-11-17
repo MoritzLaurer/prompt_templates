@@ -54,8 +54,8 @@ pre-commit = "^4.0.1"
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-testpaths = ["tests", "hf_hub_prompts"]
-python_files = ["test_*.py", "*.py"]
+testpaths = ["tests", "hf_hub_prompts", "docs"]
+python_files = ["test_*.py", "*.py", "*.md"]
 pythonpath = [".","src"]
 addopts = [
     "--verbose",
@@ -65,6 +65,7 @@ addopts = [
     "--cov-branch",
     "--cov-fail-under=50",
     "--doctest-modules",
+    "--doctest-glob=*.md"
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
