@@ -30,11 +30,14 @@ jobs:
     permissions:
       contents: write
       id-token: write
+      issues: read
+      pull-requests: read
     
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Required for changelog generation
+          fetch-tags: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -96,6 +99,8 @@ jobs:
           configuration: ".github/changelog-config.json"
           commitMode: true
           ignorePreReleases: false
+          owner: "MoritzLaurer"
+          repo: "hf_hub_prompts"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

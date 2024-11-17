@@ -3,12 +3,12 @@
       {
         "title": "## 🚀 Features",
         "labels": ["feature", "enhancement"],
-        "commits": ["^feat:"]
+        "commits": ["^feat:", "^feature:"]
       },
       {
         "title": "## ⚠️ Breaking Changes",
         "labels": ["breaking"],
-        "commits": ["BREAKING CHANGE:", "BREAKING-CHANGE:"]
+        "commits": ["^BREAKING[ -]CHANGE:"]
       },
       {
         "title": "## 🐛 Bug Fixes",
@@ -54,22 +54,13 @@
         "title": "## 👥 Contributors",
         "labels": ["contributors"],
         "commits": ["^contributor:"]
-      },
-      {
-        "title": "## Other Changes",
-        "labels": ["other"],
-        "commits": [".*"]
       }
     ],
-    "template": "${{CHANGES}}\n\n## 📦 Full Changelog\n\nFor a complete list of changes, see the [full diff](https://github.com/${{OWNER}}/${{REPOSITORY}}/compare/${{FROM_TAG}}...${{TO_TAG}}).",
-    "pr_template": "- ${{TITLE}} (#${{NUMBER}})",
-    "commit_template": "- ${{SUBJECT}}",
-    "empty_template": "No changes in this category",
+    "ignore_labels": [
+      "ignore"
+    ],
     "sort": "ASC",
-    "transform": {
-        "commit": {
-            "pattern": "^(.+?)(?:\\((.+)\\))?:\\s*(.+)$",
-            "target": "- [$1] $3"
-        }
-    }
-  }
+    "template": "${{CHANGES}}\n\n## 📦 Full Changelog\n\nFor a complete list of changes, see the [full diff](https://github.com/MoritzLaurer/hf_hub_prompts/compare/${{FROM_TAG}}...${{TO_TAG}})",
+    "commit_template": "- ${{SUBJECT}}",
+    "empty_template": "No changes in this category"
+}
