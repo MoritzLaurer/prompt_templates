@@ -10,10 +10,10 @@ from .populated_prompt import PopulatedPrompt
 
 
 if TYPE_CHECKING:
-    from langchain.prompts import (
+    from langchain_core.prompts import (
         ChatPromptTemplate as LC_ChatPromptTemplate,
     )
-    from langchain.prompts import (
+    from langchain_core.prompts import (
         PromptTemplate as LC_PromptTemplate,
     )
 
