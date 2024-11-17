@@ -76,7 +76,9 @@ markdown_extensions:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
-      remove_prompt: true
+  - pymdownx.copybutton:
+      copybutton_prompt_text: ">>> |\\.\\.\\. "
+      copybutton_prompt_is_regex: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - admonition
