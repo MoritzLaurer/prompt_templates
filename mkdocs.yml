@@ -76,8 +76,7 @@ markdown_extensions:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
-      options:
-        prompt_for_code: false
+      remove_prompt: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - admonition
