@@ -26,26 +26,24 @@ def download_prompt(
         >>> # Inspect the template
         >>> template.template
         'Translate the following text to {language}:\\n{text}'
-        >>> # Populate the template
-        >>> prompt = template.populate_template(
-        ...     language="French",
-        ...     text="Hello world!"
-        ... )
+        >>> template.input_variables
+        ['language', 'text']
+        >>> template.metadata['name']
+        'Simple Translator'
 
         Download and use a chat prompt template:
         >>> # Download code teaching prompt
-        >>> chat_template = download_prompt(
+        >>> template = download_prompt(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="code_teacher.yaml"
         ... )
         >>> # Inspect the template
-        >>> chat_template.messages[1]["content"]
-        'Explain what {concept} is in {programming_language}.'
-        >>> # Populate the template
-        >>> chat_prompt = chat_template.populate_template(
-        ...     concept="list comprehension",
-        ...     programming_language="Python"
-        ... )
+        >>> template.messages
+        [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
+        >>> template.input_variables
+        ['concept', 'programming_language']
+        >>> template.metadata['version']
+        '0.0.1'
 
     Args:
         repo_id (str): The repository ID on Hugging Face Hub (e.g., 'username/repo_name').

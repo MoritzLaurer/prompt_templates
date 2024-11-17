@@ -7,22 +7,50 @@ SUPPORTED_CLIENT_FORMATS = ["openai", "anthropic"]  # TODO: add more clients
 
 @dataclass
 class PopulatedPrompt:
-    """A class representing a populated prompt.
+    """A class representing a populated prompt that can be formatted to be compatible with different LLM clients.
 
-    Examples:
-        >>> # For standard prompts
-        >>> prompt = template.populate_template(name="Alice")
-        >>> text = prompt.content
-        >>>
-        >>> # For chat prompts
-        >>> prompt = chat_template.populate_template(name="Alice")
-        >>> messages = prompt.format_for_client(client="anthropic")
+    This class serves two main purposes:
+    1. Store populated prompts (both text and chat formats)
+    2. Convert chat prompts between different LLM client formats (e.g., OpenAI, Anthropic)
+
+    The class handles two types of content:
+
+    * **Text prompts**: Simple strings that can be used directly with any LLM
+    * **Chat prompts**: Lists or Dicts of messages that are compatible with the format expected by different LLM clients
+
+    For examples of converting between client formats, see the [`format_for_client()`][hf_hub_prompts.populated_prompt.PopulatedPrompt.format_for_client] method.
     """
 
     content: Union[str, List[Dict[str, Any]]]
 
     def format_for_client(self, client: str = "openai") -> Union[List[Dict[str, Any]], Dict[str, Any]]:
         """Format the prompt content for a specific client.
+
+        Examples:
+            Format chat messages for different clients:
+            >>> from hf_hub_prompts import download_prompt
+            >>> template = download_prompt(
+            ...     repo_id="MoritzLaurer/example_prompts",
+            ...     filename="code_teacher.yaml"
+            ... )
+            >>> prompt = template.populate_template(
+            ...     concept="list comprehension",
+            ...     programming_language="Python"
+            ... )
+            >>> prompt.content
+            [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]
+
+            >>> # By default, the populated prompt.content is in the OpenAI messages format
+            >>> messages_openai = prompt.format_for_client("openai")
+            >>> messages_openai == prompt.content
+            True
+
+            >>> # We can also convert the populated prompt to other formats
+            >>> messages_anthropic = prompt.format_for_client("anthropic")
+            >>> messages_anthropic == prompt.content
+            False
+            >>> messages_anthropic
+            {'system': 'You are a coding assistant who explains concepts clearly and provides short examples.', 'messages': [{'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]}
 
         Args:
             client (str): The client format to use ('openai', 'anthropic'). Defaults to 'openai'.
@@ -31,7 +59,7 @@ class PopulatedPrompt:
             Union[List[Dict[str, Any]], Dict[str, Any]]: Formatted prompt content suitable for the specified client.
 
         Raises:
-            ValueError: If an unsupported client format is specified.
+            ValueError: If an unsupported client format is specified or if trying to format a text prompt.
         """
         if isinstance(self.content, str):
             # For standard prompts, format_for_client does not add value

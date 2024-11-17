@@ -54,8 +54,8 @@ pre-commit = "^4.0.1"
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-testpaths = ["tests"]
-python_files = "test_*.py"
+testpaths = ["tests", "hf_hub_prompts"]
+python_files = ["test_*.py", "*.py"]
 pythonpath = [".","src"]
 addopts = [
     "--verbose",
