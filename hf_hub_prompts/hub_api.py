@@ -10,39 +10,39 @@ from .prompt_templates import ChatPromptTemplate, TextPromptTemplate
 logger = logging.getLogger(__name__)
 
 
-def download_prompt(
+def download_prompt_template(
     repo_id: str, filename: str, repo_type: Optional[str] = "model"
 ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
     """Download a prompt template from the Hugging Face Hub.
 
     Examples:
         Download and use a text prompt template:
-        >>> from hf_hub_prompts import download_prompt
+        >>> from hf_hub_prompts import download_prompt_template
         >>> # Download translation prompt
-        >>> template = download_prompt(
+        >>> prompt_template = download_prompt_template(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="translate.yaml"
         ... )
         >>> # Inspect the template
-        >>> template.template
+        >>> prompt_template.template
         'Translate the following text to {language}:\\n{text}'
-        >>> template.input_variables
+        >>> prompt_template.input_variables
         ['language', 'text']
-        >>> template.metadata['name']
+        >>> prompt_template.metadata['name']
         'Simple Translator'
 
         Download and use a chat prompt template:
-        >>> # Download code teaching prompt
-        >>> template = download_prompt(
+        >>> # Downloadas code teaching prompt
+        >>> prompt_template = download_prompt_template(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="code_teacher.yaml"
         ... )
         >>> # Inspect the template
-        >>> template.messages
+        >>> prompt_template.messages
         [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
-        >>> template.input_variables
+        >>> prompt_template.input_variables
         ['concept', 'programming_language']
-        >>> template.metadata['version']
+        >>> prompt_template.metadata['version']
         '0.0.1'
 
     Args:
@@ -96,19 +96,19 @@ def download_prompt(
         )
 
 
-def list_prompts(repo_id: str, repo_type: Optional[str] = "model", token: Optional[str] = None) -> List[str]:
-    """List available prompt YAML files in a Hugging Face repository.
+def list_prompt_templates(repo_id: str, repo_type: Optional[str] = "model", token: Optional[str] = None) -> List[str]:
+    """List available prompt template YAML files in a Hugging Face Hub repository.
 
     Examples:
-        List all prompts in a repository:
-        >>> from hf_hub_prompts import list_prompts
-        >>> files = list_prompts("MoritzLaurer/example_prompts")
+        List all prompt templates in a repository:
+        >>> from hf_hub_prompts import list_prompt_templates
+        >>> files = list_prompt_templates("MoritzLaurer/example_prompts")
         >>> files
         ['code_teacher.yaml', 'translate.yaml']
 
     Note:
         This function simply returns all YAML file names in the repository.
-        It does not check if a file is a valid prompt, which would require downloading it.
+        It does not validate if the files contain valid prompt templates, which would require downloading them.
 
     Args:
         repo_id (str): The repository ID on Hugging Face Hub.
@@ -119,8 +119,8 @@ def list_prompts(repo_id: str, repo_type: Optional[str] = "model", token: Option
         List[str]: A list of YAML filenames in the repository sorted alphabetically.
     """
     logger.info(
-        "This function simply returns all YAML file names in the repository."
-        "It does not check if a file is a valid prompt, which would require downloading it."
+        "This function simply returns all YAML file names in the repository. "
+        "It does not validate if the files contain valid prompt templates, which would require downloading them."
     )
     api = HfApi(token=token)
     yaml_files = [

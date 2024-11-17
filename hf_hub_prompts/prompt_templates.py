@@ -77,12 +77,12 @@ class BasePromptTemplate(ABC):
         """Display the prompt configuration in the specified format.
 
         Examples:
-            >>> from hf_hub_prompts import download_prompt
-            >>> template = download_prompt(
+            >>> from hf_hub_prompts import download_prompt_template
+            >>> prompt_template = download_prompt_template(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
-            >>> template.display(format="yaml")  # doctest: +NORMALIZE_WHITESPACE
+            >>> prompt_template.display(format="yaml")  # doctest: +NORMALIZE_WHITESPACE
             template: 'Translate the following text to {language}:
               {text}'
             input_variables:
@@ -149,13 +149,13 @@ class BasePromptTemplate(ABC):
             input_variables: Dictionary of variables to validate.
 
         Behavior:
-            - If template.input_variables is defined:
+            - If prompt_template.input_variables is defined:
                 Ensures exact match between provided and expected variables.
-            - If template.input_variables is not defined:
+            - If prompt_template.input_variables is not defined:
                 Skips validation (logs warning) and accepts any variables.
 
         Raises:
-            ValueError: If template.input_variables is defined and there are
+            ValueError: If prompt_template.input_variables is defined and there are
                 missing or unexpected variables.
         """
         if self.input_variables:
@@ -175,8 +175,8 @@ class BasePromptTemplate(ABC):
                 raise ValueError("\n".join(error_msg))
         else:
             logger.warning(
-                "No input_variables specified in template. Input validation is disabled. "
-                "To enable validation, specify input_variables when creating the template. "
+                "No input_variables specified in prompt template. Input validation is disabled. "
+                "To enable validation, specify input_variables when creating the prompt template. "
                 "Without validation, misspelled variable names will be left unreplaced in the output."
             )
 
@@ -186,22 +186,22 @@ class TextPromptTemplate(BasePromptTemplate):
 
     Examples:
         Download and use a text prompt template:
-        >>> from hf_hub_prompts import download_prompt
+        >>> from hf_hub_prompts import download_prompt_template
         >>> # Download example translation prompt
-        >>> template = download_prompt(
+        >>> prompt_template = download_prompt_template(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="translate.yaml"
         ... )
         >>> # Inspect template attributes
-        >>> template.template
+        >>> prompt_template.template
         'Translate the following text to {language}:\\n{text}'
-        >>> template.input_variables
+        >>> prompt_template.input_variables
         ['language', 'text']
-        >>> template.metadata['name']
+        >>> prompt_template.metadata['name']
         'Simple Translator'
 
         >>> # Use the template
-        >>> prompt = template.populate_template(
+        >>> prompt = prompt_template.populate_template(
         ...     language="French",
         ...     text="Hello world!"
         ... )
@@ -224,14 +224,14 @@ class TextPromptTemplate(BasePromptTemplate):
         """Populate the prompt by replacing placeholders with provided values.
 
         Examples:
-            >>> from hf_hub_prompts import download_prompt
-            >>> template = download_prompt(
+            >>> from hf_hub_prompts import download_prompt_template
+            >>> prompt_template = download_prompt_template(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
-            >>> template.template
+            >>> prompt_template.template
             'Translate the following text to {language}:\\n{text}'
-            >>> prompt = template.populate_template(
+            >>> prompt = prompt_template.populate_template(
             ...     language="French",
             ...     text="Hello world!"
             ... )
@@ -239,7 +239,7 @@ class TextPromptTemplate(BasePromptTemplate):
             'Translate the following text to French:\\nHello world!'
 
         Args:
-            **input_variables: The values to fill placeholders in the template.
+            **input_variables: The values to fill placeholders in the prompt template.
 
         Returns:
             PopulatedPrompt: A PopulatedPrompt object containing the populated prompt string.
@@ -252,12 +252,12 @@ class TextPromptTemplate(BasePromptTemplate):
         """Convert the TextPromptTemplate to a LangChain PromptTemplate.
 
         Examples:
-            >>> from hf_hub_prompts import download_prompt
-            >>> template = download_prompt(
+            >>> from hf_hub_prompts import download_prompt_template
+            >>> prompt_template = download_prompt_template(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
-            >>> lc_template = template.to_langchain_template()
+            >>> lc_template = prompt_template.to_langchain_template()
             >>> # test equivalence
             >>> from langchain_core.prompts import PromptTemplate as LC_PromptTemplate
             >>> isinstance(lc_template, LC_PromptTemplate)
@@ -286,20 +286,20 @@ class ChatPromptTemplate(BasePromptTemplate):
 
     Examples:
         Download and use a chat prompt template:
-        >>> from hf_hub_prompts import download_prompt
-        >>> # Download examplecode teaching prompt
-        >>> template = download_prompt(
+        >>> from hf_hub_prompts import download_prompt_template
+        >>> # Download example code teaching prompt
+        >>> prompt_template = download_prompt_template(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="code_teacher.yaml"
         ... )
         >>> # Inspect template attributes
-        >>> template.messages
+        >>> prompt_template.messages
         [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
-        >>> template.input_variables
+        >>> prompt_template.input_variables
         ['concept', 'programming_language']
 
         >>> # Populate the template
-        >>> prompt = template.populate_template(
+        >>> prompt = prompt_template.populate_template(
         ...     concept="list comprehension",
         ...     programming_language="Python"
         ... )
@@ -313,7 +313,7 @@ class ChatPromptTemplate(BasePromptTemplate):
         {'system': 'You are a coding assistant who explains concepts clearly and provides short examples.', 'messages': [{'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]}
 
         >>> # Convenience method to populate and format in one step
-        >>> messages = template.create_messages(
+        >>> messages = prompt_template.create_messages(
         ...     client="anthropic",
         ...     concept="list comprehension",
         ...     programming_language="Python"
@@ -337,12 +337,12 @@ class ChatPromptTemplate(BasePromptTemplate):
         """Populate the prompt messages by replacing placeholders with provided values.
 
         Examples:
-            >>> from hf_hub_prompts import download_prompt
-            >>> template = download_prompt(
+            >>> from hf_hub_prompts import download_prompt_template
+            >>> prompt_template = download_prompt_template(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
-            >>> prompt = template.populate_template(
+            >>> prompt = prompt_template.populate_template(
             ...     concept="list comprehension",
             ...     programming_language="Python"
             ... )
@@ -365,16 +365,16 @@ class ChatPromptTemplate(BasePromptTemplate):
     def create_messages(
         self, client: str = "openai", **input_variables: Any
     ) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
-        """Convenience method to populate template and format for client in one step.
+        """Convenience method to populate a prompt template and format for client in one step.
 
         Examples:
-            >>> from hf_hub_prompts import download_prompt
-            >>> template = download_prompt(
+            >>> from hf_hub_prompts import download_prompt_template
+            >>> prompt_template = download_prompt_template(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
             >>> # Format for OpenAI (default)
-            >>> messages = template.create_messages(
+            >>> messages = prompt_template.create_messages(
             ...     concept="list comprehension",
             ...     programming_language="Python"
             ... )
@@ -382,7 +382,7 @@ class ChatPromptTemplate(BasePromptTemplate):
             [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]
 
             >>> # Format for Anthropic
-            >>> messages = template.create_messages(
+            >>> messages = prompt_template.create_messages(
             ...     client="anthropic",
             ...     concept="list comprehension",
             ...     programming_language="Python"
@@ -392,7 +392,7 @@ class ChatPromptTemplate(BasePromptTemplate):
 
         Args:
             client (str): The client format to use ('openai', 'anthropic'). Defaults to 'openai'.
-            **input_variables: The variables to fill into the template. For example, if your template
+            **input_variables: The variables to fill into the prompt template. For example, if your template
                 expects variables like 'name' and 'age', pass them as keyword arguments:
 
         Returns:
@@ -412,12 +412,12 @@ class ChatPromptTemplate(BasePromptTemplate):
         """Convert the ChatPromptTemplate to a LangChain ChatPromptTemplate.
 
         Examples:
-            >>> from hf_hub_prompts import download_prompt
-            >>> template = download_prompt(
+            >>> from hf_hub_prompts import download_prompt_template
+            >>> prompt_template = download_prompt_template(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
-            >>> lc_template = template.to_langchain_template()
+            >>> lc_template = prompt_template.to_langchain_template()
             >>> # test equivalence
             >>> from langchain_core.prompts import ChatPromptTemplate as LC_ChatPromptTemplate
             >>> isinstance(lc_template, LC_ChatPromptTemplate)

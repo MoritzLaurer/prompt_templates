@@ -10,7 +10,7 @@ class PopulatedPrompt:
     """A class representing a populated prompt that can be formatted to be compatible with different LLM clients.
 
     This class serves two main purposes:
-    1. Store populated prompts (both text and chat formats)
+    1. Store populated prompts (either in simple text or chat format)
     2. Convert chat prompts between different LLM client formats (e.g., OpenAI, Anthropic)
 
     The class handles two types of content:
@@ -28,12 +28,12 @@ class PopulatedPrompt:
 
         Examples:
             Format chat messages for different clients:
-            >>> from hf_hub_prompts import download_prompt
-            >>> template = download_prompt(
+            >>> from hf_hub_prompts import download_prompt_template
+            >>> prompt_template = download_prompt_template(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
-            >>> prompt = template.populate_template(
+            >>> prompt = prompt_template.populate_template(
             ...     concept="list comprehension",
             ...     programming_language="Python"
             ... )
