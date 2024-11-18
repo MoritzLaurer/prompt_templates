@@ -1,4 +1,5 @@
-# Hugging Face Hub Prompts 
+# Prompts on the Hugging Face Hub
+
 Prompts have become a key artifact for researchers and practitioners working with AI. 
 There is, however, no standardized way of sharing prompts.
 Prompts are shared on the HF Hub in [.txt files](https://huggingface.co/HuggingFaceFW/fineweb-edu-classifier/blob/main/utils/prompt.txt),

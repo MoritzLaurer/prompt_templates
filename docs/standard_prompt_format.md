@@ -1,6 +1,5 @@
 # Standardizing prompt templates
 
-## The standardized YAML/JSON prompt template format
 The library expects prompts to be stored in YAML or JSON files in any HF Hub repository. See the `Files` tab in these repos for [open-weight model prompts](https://huggingface.co/MoritzLaurer/open_models_special_prompts), [closed-model prompts](https://huggingface.co/MoritzLaurer/closed_system_prompts), or [dataset prompts](https://huggingface.co/datasets/MoritzLaurer/dataset_prompts).
 
 The YAML files must follow the following structure:
@@ -37,7 +36,12 @@ and [ChatPromptTemplate](https://python.langchain.com/api_reference/core/prompts
 ### Pro/Con prompts as datasets
 - Some prompt datasets like [awesome-chatgpt-prompts](https://huggingface.co/datasets/fka/awesome-chatgpt-prompts) have received many likes on HF
 - The dataset viewer allows for easy and quick visualization
-- Main con: tabular format is not well suited for reusing prompts and is not standard among practitioners
+- Main cons: the tabular data format is not well suited for reusing prompts and is not standard among practitioners
+    - Prompts are independent units that can be used in different applications, while a dataset forces different prompts into one parquet file. 
+    - Having multiple prompts in the same dataset forces different prompts to have the same column structure
+    - Extracting a single prompt from a dataset with dataset/pandas-like operations is unnecessarily complicated
+    - Editing a prompt in JSON or YAML is much easier than editing a (parquet) dataset
+    - Data viewers for tabular data are bad for visualizing the structure of long prompts (with line breaks etc.)
 
 
 ### Compatibility with LangChain
@@ -67,12 +71,9 @@ prompt_template_langchain = prompt_template.to_langchain_template()
 
 
 ### Existing prompt template repos:
-- distilabel: https://github.com/argilla-io/distilabel/tree/main/src/distilabel/steps/tasks/templates; https://distilabel.argilla.io/latest/components-gallery/tasks/
-- langchain hub for prompts: https://smith.langchain.com/hub, old public oss repo: https://github.com/hwchase17/langchain-hub
-- langgraph templates for agents: https://blog.langchain.dev/launching-langgraph-templates/
-- deepset prompt hub: https://github.com/deepset-ai/prompthub
-- promptify (not maintained anymore)  https://github.com/promptslab/Promptify/tree/27a53fa8e8f2a4d90f887d06ece65a44466f873a/promptify/prompts
-
-### Other resources on working with prompts
-- langfuse prompt management: https://langfuse.com/docs/prompts/example-langchain
-
+- distilabel [templates](https://github.com/argilla-io/distilabel/tree/main/src/distilabel/steps/tasks/templates) and [tasks](https://distilabel.argilla.io/latest/components-gallery/tasks/) (using pure jinja2 with {{ ... }} for input variables)
+- [LangChain Hub](https://smith.langchain.com/hub) for prompts (main hub is proprietary. See the old public oss [repo](https://github.com/hwchase17/langchain-hub), using JSON or YAML, with {...} for input variables)
+- [LangGraph Templates](https://blog.langchain.dev/launching-langgraph-templates/) (underlying data structure unclear, does not seem to have a collaborative way of sharing templates)
+- [Deepset Prompt Hub](https://github.com/deepset-ai/prompthub) (seems not maintained anymore, used YAML with {...} for input variables)
+- [Promptify](https://github.com/promptslab/Promptify/tree/27a53fa8e8f2a4d90f887d06ece65a44466f873a/promptify/prompts) (not maintained anymore, used jinja1 and {{ ... }} for input variables)
+- [Langfuse](https://langfuse.com/docs/prompts/get-started) (no public prompt repo, using JSON internally with {{...}} for input variables)
