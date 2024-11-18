@@ -4,6 +4,7 @@
 The library expects prompts to be stored in YAML or JSON files in any HF Hub repository. See the `Files` tab in these repos for [open-weight model prompts](https://huggingface.co/MoritzLaurer/open_models_special_prompts), [closed-model prompts](https://huggingface.co/MoritzLaurer/closed_system_prompts), or [dataset prompts](https://huggingface.co/datasets/MoritzLaurer/dataset_prompts).
 
 The YAML files must follow the following structure:
+
 - Top-level key (required): `prompt`. 
 - Second-level key (required): *Either* `messages` *or* `template`. If `messages`, the prompt template must be provded as a list of dictionaries following the OpenAI messages format. This format is recommended for use with LLM APIs or inference containers.  If `template`, the prompt must be provided as a single string. 
 - Second-level keys (optional): (1) `input_variables`: an optional list of variables for populating the prompt template. This is also used for input validation; (2) `metadata`: Other information, such as the source, date, author etc.; (3) Any other key of relevance, such as `client_settings` with parameters for reproducibility with a specific inference client, or `metrics` form evaluations on specific datasets.

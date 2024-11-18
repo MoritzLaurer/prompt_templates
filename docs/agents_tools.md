@@ -6,6 +6,7 @@ This page contains some initial thoughts on this.
 
 ### How to handle tools?
 Potential standard ways of storing tools: 
+
 - JSON files: Tool use and function calling is often handled via JSON strings and different libraries then provide different abstractions on top of this. 
 - .py file: libraries like `LangChain` or `Transformers.Agents` enable the use of tools/functions via normal python functions with doc strings and a decorator. This would be less universally compatible/interoperable though. 
 

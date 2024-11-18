@@ -2,6 +2,7 @@
 # Prompts on the HF Hub
 
 The HF Hub is currently organized around three main repository types:
+
 - Model repositories: Repos with model weights, tokenizers, and model configs.
 - Dataset repositories: Repos with tabular datasets (mostly in parquet format). 
 - Spaces repositories: Repos with hosted applications (often with code and data, which is then visualized in the Space).
