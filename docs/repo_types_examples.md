@@ -105,7 +105,7 @@ prompt_template = download_prompt_template(repo_id="MoritzLaurer/closed_system_p
 
 
 
-### 2. Sharing prompts together with model weights
+## 2. Sharing prompts together with model weights
 Some open-weight LLMs have been trained to exhibit specific behaviours with specific prompts.
 The vision language model [InternVL2](https://huggingface.co/collections/OpenGVLab/internvl-20-667d3961ab5eb12c7ed1463e) was trained to predict bounding boxes for manually specified areas with a special prompt; 
 the VLM [Molmo](https://huggingface.co/collections/allenai/molmo-66f379e6fe3b8ef090a8ca19) was trained to predict point coordinates of objects of images with a special prompt; etc.
@@ -162,7 +162,7 @@ response.choices[0].message.content
 
 
 
-### 3. Attaching prompts to datasets
+## 3. Attaching prompts to datasets
 LLMs are increasingly used to help create datasets, for example for quality filtering or synthetic text generation.
 The prompts used for creating a dataset are currently unsystematically shared on GitHub ([example](https://github.com/huggingface/cosmopedia/tree/main/prompts)), 
 referenced in dataset cards ([example](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu#annotation)), or stored in .txt files ([example](https://huggingface.co/HuggingFaceFW/fineweb-edu-classifier/blob/main/utils/prompt.txt)), 
@@ -227,6 +227,11 @@ The prompts could be directly added to the dataset repository in the standardize
 
 
 
-## 4. Attaching prompts to Spaces
-TODO
+## 4. Attaching prompts to HF Spaces
+
+See also the [Agents and Tools](docs/agents_tools.md) page for using HF Spaces for hosting prompts and tools as part of agents.
+
+[TODO: create example]
+
+
 

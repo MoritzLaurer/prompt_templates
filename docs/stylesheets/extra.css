@@ -146,3 +146,24 @@
     margin: 0 !important;
     padding: 0 !important;
   }
+  
+  /* Base hyperlink styling */
+  .md-typeset a {
+    color: var(--md-accent-fg-color);
+    text-decoration: underline;
+  }
+  
+  .md-typeset a:hover {
+    color: var(--md-accent-fg-color--light);
+  }
+  
+  /* Dark mode specific hyperlink styling */
+  [data-md-color-scheme="slate"] .md-typeset a {
+    color: var(--md-accent-fg-color);
+    text-decoration: underline;
+  }
+  
+  [data-md-color-scheme="slate"] .md-typeset a:hover {
+    color: var(--md-accent-fg-color--light);
+    opacity: 0.87;
+  }
