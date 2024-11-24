@@ -229,7 +229,7 @@ The prompts could be directly added to the dataset repository in the standardize
 
 ## 4. Attaching prompts to HF Spaces
 
-See also the [Agents and Tools](docs/agents_tools.md) page for using HF Spaces for hosting prompts and tools as part of agents.
+See also the [Agents](docs/agents.md) and [Tools](docs/tools.md) page for using HF Spaces for hosting prompts and tools as part of agents.
 
 [TODO: create example]
 

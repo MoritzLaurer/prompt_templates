@@ -92,7 +92,8 @@ nav:
     - Overview: index.md
     - HF Hub Repo Types: repo_types_examples.md
     - Standard Prompt Format: standard_prompt_format.md
-    - Agents and Tools: agents_tools.md
+    - Tools: tools.md
+    - Agents: agents.md
   - API Reference:
     - Downloading prompts: reference/hub_api.md
     - Prompt templates: reference/prompt_templates.md

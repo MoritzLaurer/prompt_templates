@@ -71,9 +71,10 @@ prompt_template_langchain = prompt_template.to_langchain_template()
 
 
 ### Existing prompt template repos:
-- distilabel [templates](https://github.com/argilla-io/distilabel/tree/main/src/distilabel/steps/tasks/templates) and [tasks](https://distilabel.argilla.io/latest/components-gallery/tasks/) (using pure jinja2 with {{ ... }} for input variables)
 - [LangChain Hub](https://smith.langchain.com/hub) for prompts (main hub is proprietary. See the old public oss [repo](https://github.com/hwchase17/langchain-hub), using JSON or YAML, with {...} for input variables)
 - [LangGraph Templates](https://blog.langchain.dev/launching-langgraph-templates/) (underlying data structure unclear, does not seem to have a collaborative way of sharing templates)
+- [LlamaHub](https://llamahub.ai/) (seems to use GitHub as backend)
 - [Deepset Prompt Hub](https://github.com/deepset-ai/prompthub) (seems not maintained anymore, used YAML with {...} for input variables)
+- distilabel [templates](https://github.com/argilla-io/distilabel/tree/main/src/distilabel/steps/tasks/templates) and [tasks](https://distilabel.argilla.io/latest/components-gallery/tasks/) (using pure jinja2 with {{ ... }} for input variables)
+- [Langfuse](https://langfuse.com/docs/prompts/get-started), see also [example here](https://langfuse.com/guides/cookbook/prompt_management_langchain) (no public prompt repo, using JSON internally with {{...}} for input variables)
 - [Promptify](https://github.com/promptslab/Promptify/tree/27a53fa8e8f2a4d90f887d06ece65a44466f873a/promptify/prompts) (not maintained anymore, used jinja1 and {{ ... }} for input variables)
-- [Langfuse](https://langfuse.com/docs/prompts/get-started) (no public prompt repo, using JSON internally with {{...}} for input variables)
