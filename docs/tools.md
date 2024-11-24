@@ -11,6 +11,7 @@ Different companies use slightly different language and implementations for this
 ## Main components of tools
 
 LLM tools have the following main components: 
+
 1. A textual description of the tool, including its inputs and outputs. This description is passed to the LLM's prompt, to enable it to produce text outputs that fit to the tool's description. For closed-source LLM, this integration of the tool description into the prompt is hidden. 
 2. Code that implements the tool. For example a simple Python function taking a search query text as input, does an API call, and returns ranked search results as output. 
 3. A compute environment in which the tool's code is executed. This can e.g. be your local computers' development environment, or docker container running on a cloud CPU. 
@@ -22,7 +23,7 @@ The tutorials of **LLM API providers** format tools either as Python dictionarie
 
 **LLM agent libraries** all have their own implementations of tools for their library: [LangChain Tools](https://github.com/langchain-ai/langchain/tree/master/libs/langchain/langchain/tools), LangChain Community [Tools](https://github.com/langchain-ai/langchain/tree/master/libs/community/langchain_community/tools) or [Agent Toolkits](https://github.com/langchain-ai/langchain/tree/a83357dc5ab5fcbed8c2dd7606e9ce763e48d194/libs/community/langchain_community/agent_toolkits) ([docs](https://python.langchain.com/docs/how_to/#tools)); [LlamaHub](https://llamahub.ai/?tab=tools) ([docs](https://docs.llamaindex.ai/en/stable/understanding/agent/tools/), [docs](https://docs.llamaindex.ai/en/stable/module_guides/deploying/agents/tools/)); [CrewAI Tools](https://github.com/crewAIInc/crewAI-tools) ([docs](https://docs.crewai.com/concepts/tools), including wrapper for using LangChain and LlamaHub tools); [AutoGen](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-core/src/autogen_core/components/tools) ([docs](https://microsoft.github.io/autogen/dev//user-guide/core-user-guide/framework/tools.html), including a LangChain [tool wrapper](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-ext/src/autogen_ext/tools)); [Transformers Agents](https://github.com/huggingface/transformers/tree/main/src/transformers/agents) etc.
 
-As all of these libraries and their tool collections are hosten on GitHub, this makes GitHub the main platform for sharing LLM tools today. 
+As all of these libraries and their tool collections are hosten on GitHub, GitHub has indirectly become the main platform for sharing LLM tools today, although it has not been designed for this purpose. 
 
 The main standardizing force for LLM tools are the API specifications and the expected JSON input format of LLM API providers. As OpenAI is the main standard setter, most libraries are compatible with the JSON input format specified in the OpenAI function/tool calling [guide](https://platform.openai.com/docs/guides/function-calling) and [docs](https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools). In the field of agents, this has lead to the json agent paradigm. (Note that this requirement of LLM API compatibility is unnecessary in the code agent paradigm, where the LLM writes executable code itself, instead of only writing the structured input for existing code.)
 
@@ -39,8 +40,8 @@ Alternatively, tools could be shared as .json files, but this would decouple the
 
 ## Current implementation in transformers.agents
 
-`Transformers.Agents` currently has [Tool.push_to_hub](https://huggingface.co/docs/transformers/v4.45.2/en/main_classes/agent#transformers.Tool.push_to_hub) which pushes tools to the hub as a Space. Some tools & prompts have been stored like this [here](https://huggingface.co/huggingface-tools) on the Hub. This makes sense if users want a hosted tool with compute, but it is not interoperable with API client libraries. 
-[TODO: Think more about this]
+`transformers.agents` currently has [Tool.push_to_hub](https://huggingface.co/docs/transformers/v4.45.2/en/main_classes/agent#transformers.Tool.push_to_hub) which pushes tools to the hub as a Space. Some tools & prompts have been stored like this [here](https://huggingface.co/huggingface-tools) on the Hub. This makes sense if users want a hosted tool with compute. The modularity and interoperability of this approach, however, can probably be improved. Tools as single functions in .py files would be independent units that can be reuse more easily by others and would be more interoperable with other libraries. 
+
 
 
 

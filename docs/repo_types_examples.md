@@ -7,12 +7,12 @@ The HF Hub is currently organized around three main repository types:
 - Dataset repositories: Repos with tabular datasets (mostly in parquet format). 
 - Spaces repositories: Repos with hosted applications (often with code and data, which is then visualized in the Space).
 
-Prompt templates can be integrated in any of these repository types as .yaml or .json files. [TODO: add JSON support, currently only YAML is supported.]
+Prompt templates can be integrated into any of these repository types as .yaml or .json files. [TODO: add JSON support, currently only YAML is supported.]
 
 
 
 ## 1. Prompt templates as independent artifacts in model repos
-Many prompt templates can be reused with many different models and are not linked to specific model weights. These prompt templates can be shared in a HF model repo, where the model card provides a description and usage instructions, and prompts are shared via .yaml or .json files in the same repository.
+Many prompt templates can be reused with various models and are not linked to specific model weights. These prompt templates can be shared in an HF model repo, where the model card provides a description and usage instructions, and prompts are shared via .yaml or .json files in the same repository.
 
 
 <details>
@@ -229,7 +229,7 @@ The prompts could be directly added to the dataset repository in the standardize
 
 ## 4. Attaching prompts to HF Spaces
 
-See also the [Agents](docs/agents.md) and [Tools](docs/tools.md) page for using HF Spaces for hosting prompts and tools as part of agents.
+See also the [Agents](agents.md) and [Tools](tools.md) page for using HF Spaces for hosting prompts and tools as part of agents.
 
 [TODO: create example]
 

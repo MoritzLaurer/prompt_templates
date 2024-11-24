@@ -1,22 +1,32 @@
 # Agents
 
-Sharing tools and agents on the HF Hub in a standardized way is not implemented yet.
-This page contains some initial thoughts on this. 
+How could the sharing of agents be standardized on the HF Hub?
 
-## Main components of agents
-Agents have several main components:
+A good standard for sharing agents should be: modular, open, and interoperable. 
 
-- A glue library like [autogen](https://github.com/microsoft/autogen), [CrewAI](https://github.com/crewAIInc/crewAI), [langchain](https://github.com/langchain-ai/langchain), or [transformers.agents](https://huggingface.co/docs/transformers/en/agents), which orchestrate a series of LLM calls and tool use.
-- A set of prompt templates that define different tasks and agent personas.
-- A set of tools, either as JSON strings or Python functions.
-- A compute environment to run the agent code invoking the prompts and tools.
+## Modularity: Main components of agents
+Agents have four main components:
+
+1. An orchestration library such as [autogen](https://github.com/microsoft/autogen), [CrewAI](https://github.com/crewAIInc/crewAI), [langchain](https://github.com/langchain-ai/langchain), or [transformers.agents](https://huggingface.co/docs/transformers/en/agents), which implements prompt formatting, tool parsing, API calls, agent interaction etc.
+2. A set of prompt templates that define different tasks and agent personas.
+3. A set of tools, provided as JSON strings, Python dictionaries, or functions.
+4. A compute environment to run the agent code, invoking the prompts and tools.
+
+**Modularity** is a fundamental principle in software engineering. It enables maintainability, reusability, scalability, and testability. In practice, however, the code for LLM systems and agents often combines prompt strings, tool functions and the agent orchestration code in the same files. This means that changes in prompts are hard to test and version and it is harder for others to reuse prompt templates or tools for their own systems. 
+
+Following the principle of modularity, agents should be shared in a directory of modular .yaml/.json files for prompt templates; .py files for tools; and a single agent.py file for the orchestration code. 
 
 
-## Sharing agents on the HF Hub
+## Openness: Sharing and running agents on the HF Hub
 
-HF Space repos provide a suitable compute environment for agent code and Space repos can also host the YAML/JSON files for prompt templates and tools.
+HF Space repositories provide a suitable unit for storing the files for prompt templates, tools and orchestration code in a single directory, combined with attached compute for executing the agent. One Space can contain one agent, which can be executed on a free CPU, or with high-end GPUs if required. HF Spaces can be public, private or shared with a group of people in a specific organization.
 
 [TODO: add example of a HF Space repo with an agent.]
+
+
+## Interoperability
+
+Several different orchestration frameworks for agents exist. [TODO ...]
 
 
 <!-- 
