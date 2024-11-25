@@ -19,14 +19,18 @@ Following the principle of modularity, agents should be shared in a directory of
 
 ## Openness: Sharing and running agents on the HF Hub
 
-HF Space repositories provide a suitable unit for storing the files for prompt templates, tools and orchestration code in a single directory, combined with attached compute for executing the agent. One Space can contain one agent, which can be executed on a free CPU, or with high-end GPUs if required. HF Spaces can be public, private or shared with a group of people in a specific organization.
+HF Space repositories provide a suitable unit for storing the files for prompt templates (.json or .yaml files), tools (.py files) and orchestration code (single agent.py file) in a single directory, combined with attached compute for executing the agent. One Space can contain one agent, which can be executed on a free CPU, or with high-end GPUs if required. HF Spaces can be public, private or shared with a group of people in a specific organization.
 
 [TODO: add example of a HF Space repo with an agent.]
+
+Open question: How can individual prompts and tools be made easily findable and likeable for the community, if they are only files within a repository? 
 
 
 ## Interoperability
 
-Several different orchestration frameworks for agents exist. [TODO ...]
+Prompts and tools can be made interoperable by breaking them down into the basic file format most libraries use: prompts in .json/.yaml files following the OAI messages format and tools in .py files with functions and doc strings. Only the orchestration code in the agent.py file is non-standardized and can use the code of any orchestration framework, calling on the modular and standardized tools and prompts. 
+
+
 
 
 <!-- 
