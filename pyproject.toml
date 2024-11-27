@@ -23,13 +23,15 @@ langchain-openai = { version = "^0.2.2", optional = true }
 langchain-anthropic = { version = "^0.2.3", optional = true }  
 transformers = {version = "^4.45.2", optional = true}
 accelerate = {version = "^1.0.1", optional = true}
+yfinance = {version = "^0.2.50", optional = true} 
 
 [tool.poetry.extras]
 inference = [
     "langchain-core", "langchainhub", "langgraph", 
     "langchain-openai", "langchain-anthropic", 
     "openai", "anthropic", "boto3", 
-    "transformers", "accelerate"
+    "transformers", "accelerate",
+    "yfinance"
 ]
 
 [tool.poetry.group.docs.dependencies]
@@ -50,6 +52,7 @@ ruff = "^0.7.1"
 mypy = "^1.13.0"
 types-pyyaml = "^6.0.12.20240917"
 pre-commit = "^4.0.1"
+types-setuptools = "^75.6.0.20241126"
 
 
 [tool.pytest.ini_options]

@@ -68,7 +68,7 @@ plugins:
             heading_level: 2
             members_order: source
             separate_signature: true
-            filters: ["!^_"]
+            filters: ["!^_[^_]"]
             docstring_section_style: table
 
 markdown_extensions:
@@ -92,9 +92,10 @@ nav:
     - Overview: index.md
     - HF Hub Repo Types: repo_types_examples.md
     - Standard Prompt Format: standard_prompt_format.md
-    - Tools: tools.md
+    - Tools: standard_tool_format.md
     - Agents: agents.md
   - API Reference:
-    - Downloading prompts: reference/hub_api.md
+    - Downloading prompts and tools: reference/hub_api.md
     - Prompt templates: reference/prompt_templates.md
     - Populated prompt: reference/populated_prompt.md
+    - Tools: reference/tools.md

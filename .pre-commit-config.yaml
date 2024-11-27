@@ -20,6 +20,8 @@ repos:
     rev: v1.13.0
     hooks:
     -   id: mypy
-        additional_dependencies: [types-PyYAML==6.0.12.20240917]
+        additional_dependencies: 
+            - types-PyYAML==6.0.12.20240917
+            - types-setuptools
         args: ["--config-file=pyproject.toml"]
         exclude: ^tests/

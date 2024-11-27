@@ -77,8 +77,8 @@ class BasePromptTemplate(ABC):
         """Display the prompt configuration in the specified format.
 
         Examples:
-            >>> from hf_hub_prompts import download_prompt_template
-            >>> prompt_template = download_prompt_template(
+            >>> from hf_hub_prompts import PromptTemplateLoader
+            >>> prompt_template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
@@ -186,9 +186,9 @@ class TextPromptTemplate(BasePromptTemplate):
 
     Examples:
         Download and use a text prompt template:
-        >>> from hf_hub_prompts import download_prompt_template
+        >>> from hf_hub_prompts import PromptTemplateLoader
         >>> # Download example translation prompt
-        >>> prompt_template = download_prompt_template(
+        >>> prompt_template = PromptTemplateLoader.from_hub(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="translate.yaml"
         ... )
@@ -224,8 +224,8 @@ class TextPromptTemplate(BasePromptTemplate):
         """Populate the prompt by replacing placeholders with provided values.
 
         Examples:
-            >>> from hf_hub_prompts import download_prompt_template
-            >>> prompt_template = download_prompt_template(
+            >>> from hf_hub_prompts import PromptTemplateLoader
+            >>> prompt_template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
@@ -252,8 +252,8 @@ class TextPromptTemplate(BasePromptTemplate):
         """Convert the TextPromptTemplate to a LangChain PromptTemplate.
 
         Examples:
-            >>> from hf_hub_prompts import download_prompt_template
-            >>> prompt_template = download_prompt_template(
+            >>> from hf_hub_prompts import PromptTemplateLoader
+            >>> prompt_template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
@@ -286,9 +286,9 @@ class ChatPromptTemplate(BasePromptTemplate):
 
     Examples:
         Download and use a chat prompt template:
-        >>> from hf_hub_prompts import download_prompt_template
+        >>> from hf_hub_prompts import PromptTemplateLoader
         >>> # Download example code teaching prompt
-        >>> prompt_template = download_prompt_template(
+        >>> prompt_template = PromptTemplateLoader.from_hub(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="code_teacher.yaml"
         ... )
@@ -337,8 +337,8 @@ class ChatPromptTemplate(BasePromptTemplate):
         """Populate the prompt messages by replacing placeholders with provided values.
 
         Examples:
-            >>> from hf_hub_prompts import download_prompt_template
-            >>> prompt_template = download_prompt_template(
+            >>> from hf_hub_prompts import PromptTemplateLoader
+            >>> prompt_template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
@@ -368,8 +368,8 @@ class ChatPromptTemplate(BasePromptTemplate):
         """Convenience method to populate a prompt template and format for client in one step.
 
         Examples:
-            >>> from hf_hub_prompts import download_prompt_template
-            >>> prompt_template = download_prompt_template(
+            >>> from hf_hub_prompts import PromptTemplateLoader
+            >>> prompt_template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
@@ -412,8 +412,8 @@ class ChatPromptTemplate(BasePromptTemplate):
         """Convert the ChatPromptTemplate to a LangChain ChatPromptTemplate.
 
         Examples:
-            >>> from hf_hub_prompts import download_prompt_template
-            >>> prompt_template = download_prompt_template(
+            >>> from hf_hub_prompts import PromptTemplateLoader
+            >>> prompt_template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )

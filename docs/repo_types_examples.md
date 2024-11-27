@@ -32,11 +32,12 @@ list_prompt_templates(repo_id="MoritzLaurer/closed_system_prompts")
 Here, we download the leaked prompt for Claude-3.5 Sonnet for creating Artifacts. 
 
 ```python
-from hf_hub_prompts import download_prompt_template
-prompt_template = download_prompt_template(
+from hf_hub_prompts import PromptTemplateLoader
+prompt_template = PromptTemplateLoader.from_hub(
     repo_id="MoritzLaurer/closed_system_prompts",
     filename="claude-3-5-artifacts-leak-210624.yaml"
 )
+
 print(prompt_template)
 # ChatPromptTemplate(messages=[{'role': 'system', 'content': '<artifacts_info> The assistant can create and reference artifacts during conversations. Artifacts are ... Claude is now being connected with a human.'}, {'role': 'user', 'content': '{user_message}'}], input_variables=['current_date', 'user_message'], metadata=[{'source': 'https://gist.github.com/dedlim/6bf6d81f77c19e20cd40594aa09e3ecd'}])
 ```
@@ -82,9 +83,12 @@ response = client_anthropic.messages.create(
 The paper "JudgeBench: A Benchmark for Evaluating LLM-Based Judges" (<a href="https://arxiv.org/pdf/2410.12784">paper</a>) collects several prompts for using LLMs to evaluate unstructured LLM outputs. After copying them into a <a href="https://huggingface.co/MoritzLaurer/judgebench-prompts">HF Hub model repo</a> in the standardized YAML format, they can be directly loaded and populated.
 
 ```python
-from hf_hub_prompts import download_prompt_template
+from hf_hub_prompts import PromptTemplateLoader
+prompt_template = PromptTemplateLoader.from_hub(
+  repo_id="MoritzLaurer/judgebench-prompts", 
+  filename="vanilla-prompt.yaml"
+)
 
-prompt_template = download_prompt_template(repo_id="MoritzLaurer/judgebench-prompts", filename="vanilla-prompt.yaml")
 ```
 </details>
 
@@ -95,11 +99,14 @@ The community has extracted system prompts from closed API providers like OpenAI
 
 
 ```python
-from hf_hub_prompts import list_prompt_templates, download_prompt_template
+from hf_hub_prompts import list_prompt_templates, PromptTemplateLoader
 list_prompt_templates(repo_id="MoritzLaurer/closed_system_prompts")
 # out: ['claude-3-5-artifacts-leak-210624.yaml', 'claude-3-5-sonnet-text-090924.yaml', 'claude-3-5-sonnet-text-image-090924.yaml', 'jokes-prompt.yaml', 'openai-metaprompt-audio.yaml', 'openai-metaprompt-text.yaml']
 
-prompt_template = download_prompt_template(repo_id="MoritzLaurer/closed_system_prompts", filename="openai-metaprompt-text.yaml")
+prompt_template = PromptTemplateLoader.from_hub(
+  repo_id="MoritzLaurer/closed_system_prompts", 
+  filename="openai-metaprompt-text.yaml"
+)
 ```
 </details>
 
@@ -118,10 +125,12 @@ These prompts are currently either mentioned unsystematically in model cards or 
   <summary>1. Example: Sharing the <a href="https://huggingface.co/MoritzLaurer/open_models_special_prompts">InternVL2 special task prompts</a></summary>
 
 ```python
-from hf_hub_prompts import download_prompt_template
-
 # download image prompt template
-prompt_template = download_prompt_template(repo_id="MoritzLaurer/open_models_special_prompts", filename="internvl2-bbox-prompt.yaml")
+from hf_hub_prompts import PromptTemplateLoader
+prompt_template = PromptTemplateLoader.from_hub(
+  repo_id="MoritzLaurer/open_models_special_prompts", 
+  filename="internvl2-bbox-prompt.yaml"
+)
 
 # populate prompt
 image_url = "https://unsplash.com/photos/ZVw3HmHRhv0/download?ixid=M3wxMjA3fDB8MXxhbGx8NHx8fHx8fDJ8fDE3MjQ1NjAzNjl8&force=true&w=1920"
@@ -183,11 +192,15 @@ See this <a href="https://huggingface.co/datasets/MoritzLaurer/dataset_prompts">
 
 
 ```python
-from hf_hub_prompts import download_prompt_template
+from hf_hub_prompts import PromptTemplateLoader
 import torch
 from transformers import pipeline
 
-prompt_template = download_prompt_template(repo_id="MoritzLaurer/dataset_prompts", filename="fineweb-edu-prompt.yaml", repo_type="dataset")
+prompt_template = PromptTemplateLoader.from_hub(
+  repo_id="MoritzLaurer/dataset_prompts", 
+  filename="fineweb-edu-prompt.yaml", 
+  repo_type="dataset"
+)
 
 # populate the prompt
 text_to_score = "The quick brown fox jumps over the lazy dog"
@@ -229,7 +242,7 @@ The prompts could be directly added to the dataset repository in the standardize
 
 ## 4. Attaching prompts to HF Spaces
 
-See also the [Agents](agents.md) and [Tools](tools.md) page for using HF Spaces for hosting prompts and tools as part of agents.
+See also the [Agents](agents.md) and [Tools](standard_tool_format.md) page for using HF Spaces for hosting prompts and tools as part of agents.
 
 [TODO: create example]
 

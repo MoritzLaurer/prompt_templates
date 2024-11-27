@@ -1,13 +1,17 @@
-from .hub_api import download_prompt_template, list_prompt_templates
+from .hub_api import PromptTemplateLoader, ToolLoader, list_prompt_templates, list_tools
 from .populated_prompt import PopulatedPrompt
 from .prompt_templates import BasePromptTemplate, ChatPromptTemplate, TextPromptTemplate
+from .tools import Tool
 
 
 __all__ = [
+    "PromptTemplateLoader",
+    "list_prompt_templates",
+    "BasePromptTemplate",
     "TextPromptTemplate",
     "ChatPromptTemplate",
-    "BasePromptTemplate",
     "PopulatedPrompt",
-    "download_prompt_template",
-    "list_prompt_templates",
+    "ToolLoader",
+    "list_tools",
+    "Tool",
 ]

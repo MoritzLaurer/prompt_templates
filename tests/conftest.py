@@ -15,6 +15,8 @@ def mock_hf_hub(monkeypatch):
             return str(test_data_dir / "translate.yaml")
         elif "code_teacher.yaml" in str(args):
             return str(test_data_dir / "code_teacher.yaml")
+        elif "get_stock_price.py" in str(args):
+            return str(test_data_dir / "get_stock_price.py")
 
         raise ValueError(f"Unknown test file requested: {args}")
 

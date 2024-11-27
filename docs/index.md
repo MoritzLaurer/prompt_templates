@@ -30,8 +30,8 @@ pip install hf-hub-prompts
 ['code_teacher.yaml', 'translate.yaml']
 
 >>> # 2. Download a prompt template:
->>> from hf_hub_prompts import download_prompt_template
->>> prompt_template = download_prompt_template(
+>>> from hf_hub_prompts import PromptTemplateLoader
+>>> prompt_template = PromptTemplateLoader.from_hub(
 ...     repo_id="MoritzLaurer/example_prompts",
 ...     filename="code_teacher.yaml"
 ... )
