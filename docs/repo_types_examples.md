@@ -1,5 +1,5 @@
 
-# Prompts on the HF Hub
+# Prompt templates on the HF Hub
 
 The HF Hub is currently organized around three main repository types:
 
@@ -12,7 +12,7 @@ Prompt templates can be integrated into any of these repository types as .yaml o
 
 
 ## 1. Prompt templates as independent artifacts in model repos
-Many prompt templates can be reused with various models and are not linked to specific model weights. These prompt templates can be shared in an HF model repo, where the model card provides a description and usage instructions, and prompts are shared via .yaml or .json files in the same repository.
+Many prompt templates can be reused with various models and are not linked to specific model weights. These prompt templates can be shared in an HF model repo, where the model card provides a description and usage instructions, and prompt templates are shared via .yaml or .json files in the same repository.
 
 
 <details>
@@ -113,16 +113,16 @@ prompt_template = PromptTemplateLoader.from_hub(
 
 
 ## 2. Sharing prompts together with model weights
-Some open-weight LLMs have been trained to exhibit specific behaviours with specific prompts.
-The vision language model [InternVL2](https://huggingface.co/collections/OpenGVLab/internvl-20-667d3961ab5eb12c7ed1463e) was trained to predict bounding boxes for manually specified areas with a special prompt; 
-the VLM [Molmo](https://huggingface.co/collections/allenai/molmo-66f379e6fe3b8ef090a8ca19) was trained to predict point coordinates of objects of images with a special prompt; etc.
+Some open-weight LLMs have been trained to exhibit specific behaviours with specific prompt templates.
+The vision language model [InternVL2](https://huggingface.co/collections/OpenGVLab/internvl-20-667d3961ab5eb12c7ed1463e) was trained to predict bounding boxes for manually specified areas with a special prompt template; 
+the VLM [Molmo](https://huggingface.co/collections/allenai/molmo-66f379e6fe3b8ef090a8ca19) was trained to predict point coordinates of objects of images with a special prompt template; etc.
 
-These prompts are currently either mentioned unsystematically in model cards or need to be tracked down on github or paper appendices by users. 
+These prompt templates are currently either mentioned unsystematically in model cards or need to be tracked down on github or paper appendices by users. 
 
-`hf_hub_prompts` proposes to share these types of prompts in YAML files in the model repository together with the model weights. 
+`hf_hub_prompts` proposes to share these types of prompt templates in YAML or JSON files in the model repository together with the model weights. 
 
 <details>
-  <summary>1. Example: Sharing the <a href="https://huggingface.co/MoritzLaurer/open_models_special_prompts">InternVL2 special task prompts</a></summary>
+  <summary>1. Example: Sharing the <a href="https://huggingface.co/MoritzLaurer/open_models_special_prompts">InternVL2 special task prompt templates</a></summary>
 
 ```python
 # download image prompt template
@@ -145,7 +145,7 @@ print(messages)
 #    'text': 'Please provide the bounding box coordinate of the region this sentence describes: <ref>the bird</ref>'}]}]
 ```
 
-This prompt can then directly be used in a vLLM container, e.g. hosted on HF Inference Endpoints, using the OpenAI messages format and client.
+This populated prompt can then directly be used in a vLLM container, e.g. hosted on HF Inference Endpoints, using the OpenAI messages format and client.
 
 ```py
 from openai import OpenAI
@@ -173,21 +173,20 @@ response.choices[0].message.content
 
 ## 3. Attaching prompts to datasets
 LLMs are increasingly used to help create datasets, for example for quality filtering or synthetic text generation.
-The prompts used for creating a dataset are currently unsystematically shared on GitHub ([example](https://github.com/huggingface/cosmopedia/tree/main/prompts)), 
+The prompt templates used for creating a dataset are currently unsystematically shared on GitHub ([example](https://github.com/huggingface/cosmopedia/tree/main/prompts)), 
 referenced in dataset cards ([example](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu#annotation)), or stored in .txt files ([example](https://huggingface.co/HuggingFaceFW/fineweb-edu-classifier/blob/main/utils/prompt.txt)), 
 hidden in paper appendices or not shared at all. 
 This makes reproducibility unnecessarily difficult.
 
-To facilitate reproduction, these dataset prompts can be shared in YAML files in HF dataset repositories together with metadata on generation parameters, model_ids etc. 
+To facilitate reproduction, these dataset prompt templates can be shared in YAML files in HF dataset repositories together with metadata on generation parameters, model_ids etc. 
 
 
 <details>
   <summary>1. Example: the <a href="https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu">FineWeb-edu</a> prompt</summary>
 The FineWeb-Edu dataset was created by prompting `Meta-Llama-3-70B-Instruct` to score the educational value of web texts.
-The authors <a href="https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu#annotation">provide the prompt</a> in a .txt file.
+The authors <a href="https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu#annotation">provide the prompt template</a> in a <a href="https://huggingface.co/HuggingFaceFW/fineweb-edu-classifier/blob/main/utils/prompt.txt">.txt</a> file.
 
-When provided in a YAML file in the dataset repo, the prompt can easily be loaded and supplemented with metadata
-like the model_id or generation parameters for easy reproducibility. 
+When provided in a YAML/JSON file in the dataset repo, the prompt template can easily be loaded and supplemented with metadata like the model_id or generation parameters for easy reproducibility. 
 See this <a href="https://huggingface.co/datasets/MoritzLaurer/dataset_prompts">example dataset repository</a>
 
 
@@ -230,11 +229,11 @@ print(outputs[0]["generated_text"][-1])
 <details>
   <summary>2. Example: the <a href="https://huggingface.co/collections/HuggingFaceTB/cosmopedia-65d4e44c693d9451ce4344d6">Cosmopedia dataset</a></summary>
 Cosmopedia is a dataset of synthetic textbooks, blogposts, stories, posts and WikiHow articles generated by Mixtral-8x7B-Instruct-v0.1.
-The dataset shares it's prompts on <a href="https://github.com/huggingface/cosmopedia/tree/main/prompts">GitHub</a>
+The dataset shares it's prompt templates on <a href="https://github.com/huggingface/cosmopedia/tree/main/prompts">GitHub</a>
 with a <a href="https://github.com/huggingface/cosmopedia/blob/main/prompts/auto_math_text/build_science_prompts.py">custom build logic</a>.
 The prompts are not available in the <a href="https://huggingface.co/datasets/HuggingFaceTB/cosmopedia/tree/main">HF dataset repo</a>
 
-The prompts could be directly added to the dataset repository in the standardized YAML format. 
+The prompts could be directly added to the dataset repository in the standardized YAML/JSON format. 
 
 </details>
 

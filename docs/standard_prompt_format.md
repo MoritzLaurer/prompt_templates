@@ -11,8 +11,7 @@ A prompt template YAML or JSON file must follow the following standardized struc
 This structure is inspired by the LangChain [PromptTemplate](https://python.langchain.com/api_reference/core/prompts/langchain_core.prompts.prompt.PromptTemplate.html) 
 and [ChatPromptTemplate](https://python.langchain.com/api_reference/core/prompts/langchain_core.prompts.chat.ChatPromptTemplate.html).
 
-
-Example YAML prompt template: 
+Example prompt template in YAML: 
 ```yaml
 prompt:
   messages:
@@ -31,6 +30,33 @@ prompt:
       - education
     version: "0.0.1"
     author: "Karl Marx"
+```
+
+**Naming convention:** We call a file a *"prompt template"*, when it has placeholders ({...}) for dynamically populating the template like an f-string. This makes files more useful and reusable by others for different use-cases. Once the placeholders in the template are populated with specific input variables, we call it a *"prompt"*. 
+
+The following example illustrates how the prompt template becomes a prompt. 
+
+```python
+>>> # 1. Download a prompt template:
+>>> from hf_hub_prompts import PromptTemplateLoader
+>>> prompt_template = PromptTemplateLoader.from_hub(
+...     repo_id="MoritzLaurer/example_prompts",
+...     filename="code_teacher.yaml"
+... )
+
+>>> # 2. Inspect the template and it's input variables:
+>>> prompt_template.messages
+[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
+>>> prompt_template.input_variables
+['concept', 'programming_language']
+
+>>> # 3. Populate the template with its input variables
+>>> prompt = prompt_template.populate_template(
+...     concept="list comprehension",
+...     programming_language="Python"
+... )
+>>> prompt.content
+[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]
 ```
 
 
