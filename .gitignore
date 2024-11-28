@@ -28,3 +28,6 @@ site/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# other files
+pyproject.artifacts.toml
