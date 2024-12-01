@@ -1,7 +1,7 @@
 prompt:
   template: |-  # The "|-" makes the following string behave similar to a string in """...""" in Python to render linebreaks correctly. For YAML syntax explanations see e.g. https://www.cloudbees.com/blog/yaml-tutorial-everything-you-need-get-started.
-    Translate the following text to {language}:
-    {text}
+    Translate the following text to {{language}}:
+    {{text}}
   input_variables:
     - language
     - text

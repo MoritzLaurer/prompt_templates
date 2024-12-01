@@ -2,10 +2,13 @@ import json
 import logging
 import re
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Match, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Match, Optional, Set, Union
 
+import jinja2
 import yaml
+from jinja2 import Environment, meta
 
+from .constants import Jinja2SecurityLevel, RendererType
 from .populated_prompt import PopulatedPrompt
 
 
@@ -33,13 +36,54 @@ class BasePromptTemplate(ABC):
     input_variables: Optional[List[str]]
     other_data: Dict[str, Any]
 
-    def __init__(self, prompt_data: Dict[str, Any], prompt_url: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        prompt_data: Dict[str, Any],
+        prompt_url: Optional[str] = None,
+        renderer: Optional[RendererType] = None,
+        jinja2_security_level: Jinja2SecurityLevel = "standard",
+    ) -> None:
+        # Track which renderer is being used
+        self.renderer_type: RendererType
+        self.renderer: TemplateRenderer
+
+        if renderer is not None:
+            # Use explicitly specified renderer
+            if renderer == "jinja2":
+                self.renderer = Jinja2TemplateRenderer(security_level=jinja2_security_level)
+                self.renderer_type = "jinja2"
+            elif renderer == "double_brace":
+                self.renderer = DoubleBraceRenderer()
+                self.renderer_type = "double_brace"
+            elif renderer == "single_brace":
+                self.renderer = SingleBraceRenderer()
+                self.renderer_type = "single_brace"
+            else:
+                raise ValueError(
+                    f"Unknown renderer type: {renderer}. Valid options are: double_brace, single_brace, jinja2"
+                )
+        else:
+            # Auto-detect renderer
+            if self._detect_jinja2_syntax(prompt_data):
+                self.renderer = Jinja2TemplateRenderer(security_level=jinja2_security_level)
+                self.renderer_type = "jinja2"
+            elif self._detect_double_brace_syntax(prompt_data):
+                self.renderer = DoubleBraceRenderer()
+                self.renderer_type = "double_brace"
+            else:
+                self.renderer = SingleBraceRenderer()
+                self.renderer_type = "single_brace"
+
         # Set template-specific required attributes
         self._set_required_attributes_for_template_type(prompt_data)
 
         # Set optional standard attributes that are the same across all templates
         self.input_variables = prompt_data.get("input_variables")
         self.metadata = prompt_data.get("metadata")
+
+        # Validate alignment between template variables and input_variables
+        if self.input_variables:
+            self._validate_template_input_variables_alignment()
 
         # Store any additional optional data that might be present in the prompt data
         self.other_data = {
@@ -62,11 +106,11 @@ class BasePromptTemplate(ABC):
         pass
 
     @abstractmethod
-    def populate_template(self, **input_variables: Any) -> PopulatedPrompt:
-        """Abstract method to populate the prompt template with the given variables.
+    def populate_template(self, **user_provided_variables: Any) -> PopulatedPrompt:
+        """Abstract method to populate the prompt template with user-provided variables.
 
         Args:
-            **input_variables: The values to fill placeholders in the template.
+            **user_provided_variables: The values to fill placeholders in the template.
 
         Returns:
             PopulatedPrompt: A PopulatedPrompt object containing the populated content.
@@ -102,6 +146,8 @@ class BasePromptTemplate(ABC):
         display_dict = self.__dict__.copy()
         display_dict.pop("other_data", None)
 
+        # TODO: display Jinja2 template content properly
+
         if format == "json":
             print(json.dumps(display_dict, indent=2), end="")
         elif format == "yaml":
@@ -120,65 +166,133 @@ class BasePromptTemplate(ABC):
         )
         return f"{self.__class__.__name__}({attributes})"
 
-    def _fill_placeholders(self, template_part: Any, input_variables: Dict[str, Any]) -> Any:
+    def _fill_placeholders(self, template_part: Any, user_provided_variables: Dict[str, Any]) -> Any:
         """Recursively fill placeholders in strings or nested structures like dicts or lists."""
-        pattern = re.compile(r"\{([^{}]+)\}")
-
         if isinstance(template_part, str):
             # fill placeholders in strings
-            def replacer(match: Match[str]) -> str:
-                key = match.group(1).strip()
-                return str(input_variables.get(key, match.group(0)))
-
-            return pattern.sub(replacer, template_part)
-
+            return self.renderer.render(template_part, user_provided_variables)
         elif isinstance(template_part, dict):
             # Recursively handle dictionaries
-            return {key: self._fill_placeholders(value, input_variables) for key, value in template_part.items()}
+            return {
+                key: self._fill_placeholders(value, user_provided_variables) for key, value in template_part.items()
+            }
 
         elif isinstance(template_part, list):
             # Recursively handle lists
-            return [self._fill_placeholders(item, input_variables) for item in template_part]
+            return [self._fill_placeholders(item, user_provided_variables) for item in template_part]
 
         return template_part  # For non-string, non-dict, non-list types, return as is
 
-    def _validate_input_variables(self, input_variables: Dict[str, Any]) -> None:
-        """Validate that the provided input variables match the expected ones.
+    def _validate_user_provided_variables(self, user_provided_variables: Dict[str, Any]) -> None:
+        """Validate that all required variables are provided by the user.
 
         Args:
-            input_variables: Dictionary of variables to validate.
-
-        Behavior:
-            - If prompt_template.input_variables is defined:
-                Ensures exact match between provided and expected variables.
-            - If prompt_template.input_variables is not defined:
-                Skips validation (logs warning) and accepts any variables.
+            user_provided_variables: Variables provided by user to populate template
 
         Raises:
-            ValueError: If prompt_template.input_variables is defined and there are
-                missing or unexpected variables.
+            ValueError: If validation fails
         """
-        if self.input_variables:
-            missing_vars = set(self.input_variables) - set(input_variables.keys())
-            extra_vars = set(input_variables.keys()) - set(self.input_variables)
+        # Since template_variables and input_variables are already aligned based on _validate_template_input_variables_alignment, we can validate against either
+        required_variables = set(self.input_variables) if self.input_variables else self._get_template_variables()
 
-            if missing_vars or extra_vars:
-                error_msg = []
-                error_msg.append(f"Expected input_variables from the prompt template: {self.input_variables}")
-                if missing_vars:
-                    error_msg.append(f"Missing variables: {list(missing_vars)}")
-                if extra_vars:
-                    error_msg.append(f"Unexpected variables: {list(extra_vars)}")
-                if self.other_data["prompt_url"]:
-                    error_msg.append(f"Template URL: {self.other_data["prompt_url"]}")
+        # Validate that user provided all required variables
+        missing_vars = required_variables - set(user_provided_variables.keys())
+        unexpected_vars = set(user_provided_variables.keys()) - required_variables
 
-                raise ValueError("\n".join(error_msg))
-        else:
-            logger.warning(
-                "No input_variables specified in prompt template. Input validation is disabled. "
-                "To enable validation, specify input_variables when creating the prompt template. "
-                "Without validation, misspelled variable names will be left unreplaced in the output."
-            )
+        if missing_vars or unexpected_vars:
+            error_msg = []
+            if missing_vars:
+                error_msg.append(f"Missing required variables to fully populate the template: {list(missing_vars)}")
+            if unexpected_vars:
+                error_msg.append(f"Unexpected variables that are not used in the template: {list(unexpected_vars)}")
+            if "prompt_url" in self.other_data:
+                error_msg.append(f"Template URL: {self.other_data['prompt_url']}")
+            raise ValueError("\n".join(error_msg))
+
+    def _validate_template_input_variables_alignment(self) -> None:
+        """Validate that declared input_variables match variables found in the template string.
+
+        Raises:
+            ValueError: If there's a mismatch between declared input_variables and template variables
+        """
+        # Get variables found in template
+        template_variables = self._get_template_variables()
+
+        # get input_variables (and handle None case for type checking)
+        input_variables = self.input_variables if self.input_variables is not None else []
+
+        # Check for mismatches between declared input_variables and template variables
+        undeclared_template_vars = template_variables - set(input_variables)
+        unused_input_vars = set(input_variables) - template_variables
+
+        if undeclared_template_vars or unused_input_vars:
+            error_msg = []
+            if undeclared_template_vars:
+                error_msg.append(
+                    f"Template uses variables that are not declared in input_variables: {list(undeclared_template_vars)}"
+                )
+            if unused_input_vars:
+                error_msg.append(
+                    f"input_variables declares variables that are not used in template: {list(unused_input_vars)}"
+                )
+            if "prompt_url" in self.other_data:
+                error_msg.append(f"Template URL: {self.other_data['prompt_url']}")
+            raise ValueError("\n".join(error_msg))
+
+    def _get_template_variables(self) -> Set[str]:
+        """Get all variables used as placeholders in the template content.
+
+        Returns:
+            Set of variable names used as placeholders in the template
+        """
+        template_variables = set()
+        if hasattr(self, "template"):
+            template_variables = self.renderer.get_variable_names(self.template)
+        elif hasattr(self, "messages"):
+            for msg in self.messages:
+                template_variables.update(self.renderer.get_variable_names(msg["content"]))
+        return template_variables
+
+    def _detect_double_brace_syntax(self, prompt_data: Dict[str, Any]) -> bool:
+        """Detect if the template uses simple {{var}} syntax without Jinja2 features."""
+
+        def contains_double_brace(text: str) -> bool:
+            # Look for {{var}} pattern but exclude Jinja2-specific patterns
+            basic_var = r"\{\{[^{}|.\[]+\}\}"  # Only match simple variables
+            return bool(re.search(basic_var, text))
+
+        if "template" in prompt_data:
+            return contains_double_brace(prompt_data["template"])
+        elif "messages" in prompt_data:
+            return any(contains_double_brace(msg["content"]) for msg in prompt_data["messages"])
+        return False
+
+    def _detect_jinja2_syntax(self, prompt_data: Dict[str, Any]) -> bool:
+        """Detect if the template uses Jinja2 syntax.
+
+        Looks for Jinja2-specific patterns:
+        - {% statement %}    - Control structures
+        - {# comment #}     - Comments
+        - {{ var|filter }}  - Filters
+        - {{ var.attr }}    - Attribute access
+        - {{ var['key'] }}  - Dictionary access
+        """
+
+        def contains_jinja2(text: str) -> bool:
+            patterns = [
+                r"{%\s*.*?\s*%}",  # Statements
+                r"{#\s*.*?\s*#}",  # Comments
+                r"{{\s*.*?\|.*?}}",  # Filters
+                r"{{\s*.*?\..*?}}",  # Attribute access
+                r"{{\s*.*?\[.*?\].*?}}",  # Dictionary access
+            ]
+            return any(re.search(pattern, text) for pattern in patterns)
+
+        if "template" in prompt_data:
+            return contains_jinja2(prompt_data["template"])
+        elif "messages" in prompt_data:
+            return any(contains_jinja2(msg["content"]) for msg in prompt_data["messages"])
+        return False
 
 
 class TextPromptTemplate(BasePromptTemplate):
@@ -220,7 +334,7 @@ class TextPromptTemplate(BasePromptTemplate):
             raise ValueError("You must provide 'template' in prompt_data")
         self.template = prompt_data["template"]
 
-    def populate_template(self, **input_variables: Any) -> PopulatedPrompt:
+    def populate_template(self, **user_provided_variables: Any) -> PopulatedPrompt:
         """Populate the prompt by replacing placeholders with provided values.
 
         Examples:
@@ -244,8 +358,8 @@ class TextPromptTemplate(BasePromptTemplate):
         Returns:
             PopulatedPrompt: A PopulatedPrompt object containing the populated prompt string.
         """
-        self._validate_input_variables(input_variables)
-        populated_prompt = self._fill_placeholders(self.template, input_variables)
+        self._validate_user_provided_variables(user_provided_variables)
+        populated_prompt = self._fill_placeholders(self.template, user_provided_variables)
         return PopulatedPrompt(content=populated_prompt)
 
     def to_langchain_template(self) -> "LC_PromptTemplate":
@@ -333,7 +447,7 @@ class ChatPromptTemplate(BasePromptTemplate):
             raise ValueError("You must provide 'messages' in prompt_data")
         self.messages = prompt_data["messages"]
 
-    def populate_template(self, **input_variables: Any) -> PopulatedPrompt:
+    def populate_template(self, **user_provided_variables: Any) -> PopulatedPrompt:
         """Populate the prompt messages by replacing placeholders with provided values.
 
         Examples:
@@ -350,20 +464,21 @@ class ChatPromptTemplate(BasePromptTemplate):
             [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]
 
         Args:
-            **input_variables: The values to fill placeholders in the messages.
+            **user_provided_variables: The values to fill placeholders in the messages.
 
         Returns:
             PopulatedPrompt: A PopulatedPrompt object containing the populated messages.
         """
-        self._validate_input_variables(input_variables)
+        self._validate_user_provided_variables(user_provided_variables)
 
         messages_populated = [
-            {**msg, "content": self._fill_placeholders(msg["content"], input_variables)} for msg in self.messages
+            {**msg, "content": self._fill_placeholders(msg["content"], user_provided_variables)}
+            for msg in self.messages
         ]
         return PopulatedPrompt(content=messages_populated)
 
     def create_messages(
-        self, client: str = "openai", **input_variables: Any
+        self, client: str = "openai", **user_provided_variables: Any
     ) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
         """Convenience method to populate a prompt template and format for client in one step.
 
@@ -392,20 +507,20 @@ class ChatPromptTemplate(BasePromptTemplate):
 
         Args:
             client (str): The client format to use ('openai', 'anthropic'). Defaults to 'openai'.
-            **input_variables: The variables to fill into the prompt template. For example, if your template
+            **user_provided_variables: The variables to fill into the prompt template. For example, if your template
                 expects variables like 'name' and 'age', pass them as keyword arguments:
 
         Returns:
             Union[List[Dict[str, Any]], Dict[str, Any]]: Populated and formatted messages.
         """
-        if "client" in input_variables:
+        if "client" in user_provided_variables:
             logger.warning(
-                f"'client' was passed both as a parameter for the LLM inference client ('{client}') and in input_variables "
-                f"('{input_variables['client']}'). The first parameter version will be used for formatting, "
-                "while the second input_variables version will be used in template population."
+                f"'client' was passed both as a parameter for the LLM inference client ('{client}') and in user_provided_variables "
+                f"('{user_provided_variables['client']}'). The first parameter version will be used for formatting, "
+                "while the second user_provided_variable version will be used in template population."
             )
 
-        prompt = self.populate_template(**input_variables)
+        prompt = self.populate_template(**user_provided_variables)
         return prompt.format_for_client(client)
 
     def to_langchain_template(self) -> "LC_ChatPromptTemplate":
@@ -439,3 +554,191 @@ class ChatPromptTemplate(BasePromptTemplate):
             input_variables=self.input_variables,
             metadata=self.metadata,
         )
+
+
+class TemplateRenderer(ABC):
+    """Abstract base class for template rendering strategies."""
+
+    @abstractmethod
+    def render(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
+        """Render the template with given user_provided_variables."""
+        pass
+
+    @abstractmethod
+    def get_variable_names(self, template_str: str) -> Set[str]:
+        """Extract variable names from template."""
+        pass
+
+
+class SingleBraceRenderer(TemplateRenderer):
+    """Template renderer using regex for basic {var} substitution."""
+
+    def render(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
+        pattern = re.compile(r"\{([^{}]+)\}")
+
+        def replacer(match: Match[str]) -> str:
+            key = match.group(1).strip()
+            if key not in user_provided_variables:
+                raise ValueError(f"Variable '{key}' not found in provided variables")
+            return str(user_provided_variables[key])
+
+        return pattern.sub(replacer, template_str)
+
+    def get_variable_names(self, template_str: str) -> Set[str]:
+        pattern = re.compile(r"\{([^{}]+)\}")
+        return {match.group(1).strip() for match in pattern.finditer(template_str)}
+
+
+class DoubleBraceRenderer(TemplateRenderer):
+    """Template renderer using regex for {{var}} substitution."""
+
+    def render(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
+        pattern = re.compile(r"\{\{([^{}]+)\}\}")
+
+        def replacer(match: Match[str]) -> str:
+            key = match.group(1).strip()
+            if key not in user_provided_variables:
+                raise ValueError(f"Variable '{key}' not found in provided variables")
+            return str(user_provided_variables[key])
+
+        return pattern.sub(replacer, template_str)
+
+    def get_variable_names(self, template_str: str) -> Set[str]:
+        pattern = re.compile(r"\{\{([^{}]+)\}\}")
+        return {match.group(1).strip() for match in pattern.finditer(template_str)}
+
+
+class Jinja2TemplateRenderer(TemplateRenderer):
+    """Jinja2 template renderer with configurable security levels.
+
+    Security Levels:
+        - strict: Minimal set of features, highest security
+            Filters: lower, upper, title, safe
+            Tests: defined, undefined, none
+            Env: autoescape=True, no caching, no globals, no auto-reload
+        - standard (default): Balanced set of features
+            Filters: lower, upper, title, capitalize, trim, strip, replace, safe,
+                    int, float, join, split, length
+            Tests: defined, undefined, none, number, string, sequence
+            Env: autoescape=True, limited caching, basic globals, no auto-reload
+        - relaxed: Default Jinja2 behavior (use with trusted templates only)
+            All default Jinja2 features enabled
+            Env: autoescape=False, full caching, all globals, auto-reload allowed
+
+    Args:
+        security_level: Level of security restrictions ("strict", "standard", "relaxed")
+    """
+
+    def __init__(self, security_level: Jinja2SecurityLevel = "standard"):
+        # Store security level for error messages
+        self.security_level = security_level
+
+        if security_level == "strict":
+            # Most restrictive settings
+            self.env = Environment(
+                undefined=jinja2.StrictUndefined,
+                trim_blocks=True,
+                lstrip_blocks=True,
+                autoescape=True,  # Force autoescaping
+                cache_size=0,  # Disable caching
+                auto_reload=False,  # Disable auto reload
+            )
+            # Remove all globals
+            self.env.globals.clear()
+
+            # Minimal set of features
+            safe_filters = {"lower", "upper", "title", "safe"}
+            safe_tests = {"defined", "undefined", "none"}
+
+        elif security_level == "standard":
+            # Balanced settings
+            self.env = Environment(
+                undefined=jinja2.StrictUndefined,
+                trim_blocks=True,
+                lstrip_blocks=True,
+                autoescape=True,  # Keep autoescaping
+                cache_size=100,  # Limited cache
+                auto_reload=False,  # Still no auto reload
+            )
+            # Allow some safe globals
+            self.env.globals.update(
+                {
+                    "range": range,  # Useful for iterations
+                    "dict": dict,  # Basic dict operations
+                    "len": len,  # Length calculations
+                }
+            )
+
+            # Balanced set of features
+            safe_filters = {
+                "lower",
+                "upper",
+                "title",
+                "capitalize",
+                "trim",
+                "strip",
+                "replace",
+                "safe",
+                "int",
+                "float",
+                "join",
+                "split",
+                "length",
+            }
+            safe_tests = {"defined", "undefined", "none", "number", "string", "sequence"}
+
+        else:  # relaxed
+            # Default Jinja2 behavior
+            self.env = Environment(
+                undefined=jinja2.StrictUndefined,
+                trim_blocks=True,
+                lstrip_blocks=True,
+                autoescape=False,  # Default Jinja2 behavior
+                cache_size=400,  # Default cache size
+                auto_reload=True,  # Allow auto reload
+            )
+            # Keep all default globals and features
+            return
+
+        # Apply security settings for strict and standard modes
+        self._apply_security_settings(safe_filters, safe_tests)
+
+    def _apply_security_settings(self, safe_filters: Set[str], safe_tests: Set[str]) -> None:
+        """Apply security settings by removing unsafe filters and tests."""
+        # Remove unsafe filters
+        unsafe_filters = set(self.env.filters.keys()) - safe_filters
+        for unsafe in unsafe_filters:
+            self.env.filters.pop(unsafe, None)
+
+        # Remove unsafe tests
+        unsafe_tests = set(self.env.tests.keys()) - safe_tests
+        for unsafe in unsafe_tests:
+            self.env.tests.pop(unsafe, None)
+
+    def render(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
+        """Render the template with given user_provided_variables."""
+        try:
+            template = self.env.from_string(template_str)
+            rendered = template.render(**user_provided_variables)
+            # Ensure we return a string for mypy
+            return str(rendered)
+        except jinja2.TemplateSyntaxError as e:
+            raise ValueError(
+                f"Invalid template syntax at line {e.lineno}: {str(e)}\n" f"Security level: {self.security_level}"
+            ) from e
+        except jinja2.UndefinedError as e:
+            raise ValueError(
+                f"Undefined variable in template: {str(e)}\n" "Make sure all required variables are provided"
+            ) from e
+        except Exception as e:
+            raise ValueError(f"Error rendering template: {str(e)}") from e
+
+    def get_variable_names(self, template_str: str) -> Set[str]:
+        """Extract variable names from template."""
+        try:
+            ast = self.env.parse(template_str)
+            variables = meta.find_undeclared_variables(ast)
+            # Ensure we return a set of strings for mypy
+            return {str(var) for var in variables}
+        except jinja2.TemplateSyntaxError as e:
+            raise ValueError(f"Invalid template syntax: {str(e)}") from e

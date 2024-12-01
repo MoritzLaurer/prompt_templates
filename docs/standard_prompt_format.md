@@ -5,20 +5,20 @@ The library expects prompt templates to be stored as modular YAML or JSON files.
 A prompt template YAML or JSON file must follow the following standardized structure:
 
 - Top-level key (required): `prompt`. This top-level key signals to the parser that the content of the file is a prompt template.
-- Second-level key (required): *Either* `messages` *or* `template`. If `messages`, the prompt template must be provided as a list of dictionaries following the OpenAI messages format. This format is recommended for use with LLM APIs or inference containers. If `template`, the prompt template should be provided as a single string. Input variable placeholders for populating the prompt template are denoted with curly brackets, similar to Python f-strings.
+- Second-level key (required): *Either* `messages` *or* `template`. If `messages`, the prompt template must be provided as a list of dictionaries following the OpenAI messages format. This format is recommended for use with LLM APIs or inference containers. If `template`, the prompt template should be provided as a single string. Variable placeholders for populating the prompt template string are denoted with double curly brackets {{...}}.
 - Second-level keys (optional): (1) `input_variables`: an optional list of variables for populating the prompt template. This is also used for input validation; (2) `metadata`: Other information, such as the source, date, author etc.; (3) Any other key of relevance, such as `client_settings` with parameters for reproducibility with a specific inference client, or `metrics` form evaluations on specific datasets.
 
 This structure is inspired by the LangChain [PromptTemplate](https://python.langchain.com/api_reference/core/prompts/langchain_core.prompts.prompt.PromptTemplate.html) 
 and [ChatPromptTemplate](https://python.langchain.com/api_reference/core/prompts/langchain_core.prompts.chat.ChatPromptTemplate.html).
 
-Example prompt template in YAML: 
+Example prompt template following the standard in YAML: 
 ```yaml
 prompt:
   messages:
     - role: "system"
       content: "You are a coding assistant who explains concepts clearly and provides short examples."
     - role: "user"
-      content: "Explain what {concept} is in {programming_language}."
+      content: "Explain what {{concept}} is in {{programming_language}}."
   input_variables:
     - concept
     - programming_language
@@ -32,7 +32,7 @@ prompt:
     author: "Karl Marx"
 ```
 
-**Naming convention:** We call a file a *"prompt template"*, when it has placeholders ({...}) for dynamically populating the template like an f-string. This makes files more useful and reusable by others for different use-cases. Once the placeholders in the template are populated with specific input variables, we call it a *"prompt"*. 
+**Naming convention:** We call a file a *"prompt template"*, when it has placeholders ({{...}}) for dynamically populating the template similr to an f-string. This makes files more useful and reusable by others for different use-cases. Once the placeholders in the template are populated with specific input variables, we call it a *"prompt"*. 
 
 The following example illustrates how the prompt template becomes a prompt. 
 
