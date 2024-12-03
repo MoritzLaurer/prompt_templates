@@ -1,4 +1,4 @@
-from .constants import Jinja2SecurityLevel, RendererType
+from .constants import Jinja2SecurityLevel, PopulatorType
 from .hub_api import PromptTemplateLoader, ToolLoader, list_prompt_templates, list_tools
 from .populated_prompt import PopulatedPrompt
 from .prompt_templates import BasePromptTemplate, ChatPromptTemplate, TextPromptTemplate
@@ -15,6 +15,6 @@ __all__ = [
     "ToolLoader",
     "list_tools",
     "Tool",
-    "RendererType",
+    "PopulatorType",
     "Jinja2SecurityLevel",
 ]

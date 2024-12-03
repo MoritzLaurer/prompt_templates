@@ -11,7 +11,7 @@ import yaml
 from huggingface_hub import HfApi, hf_hub_download
 from huggingface_hub.utils import validate_repo_id
 
-from .constants import VALID_PROMPT_EXTENSIONS, RendererType
+from .constants import VALID_PROMPT_EXTENSIONS, PopulatorType
 from .prompt_templates import ChatPromptTemplate, TextPromptTemplate
 from .tools import Tool
 
@@ -45,7 +45,7 @@ class PromptTemplateLoader:
     def from_local(
         cls,
         path: Union[str, Path],
-        renderer: Optional[RendererType] = None,
+        populator: Optional[PopulatorType] = None,
         jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
     ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
         """Load a prompt template from a local YAML file.
@@ -83,7 +83,7 @@ class PromptTemplateLoader:
             ) from e
 
         return cls._load_template_from_yaml(
-            prompt_file, renderer=renderer, jinja2_security_level=jinja2_security_level
+            prompt_file, populator=populator, jinja2_security_level=jinja2_security_level
         )
 
     @classmethod
@@ -93,7 +93,7 @@ class PromptTemplateLoader:
         filename: str,
         repo_type: str = "model",
         revision: Optional[str] = None,
-        renderer: Optional[RendererType] = None,
+        populator: Optional[PopulatorType] = None,
         jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
     ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
         """Load a prompt template from the Hugging Face Hub.
@@ -179,14 +179,14 @@ class PromptTemplateLoader:
         # Add prompt URL to metadata
         prompt_url = f"https://huggingface.co/{repo_id}/blob/main/{filename}"
         return cls._load_template_from_yaml(
-            prompt_file, prompt_url=prompt_url, renderer=renderer, jinja2_security_level=jinja2_security_level
+            prompt_file, prompt_url=prompt_url, populator=populator, jinja2_security_level=jinja2_security_level
         )
 
     @staticmethod
     def _load_template_from_yaml(
         prompt_file: Dict[str, Any],
         prompt_url: Optional[str] = None,
-        renderer: Optional[RendererType] = None,
+        populator: Optional[PopulatorType] = None,
         jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
     ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
         """Internal method to load a template from parsed YAML data.
@@ -194,8 +194,8 @@ class PromptTemplateLoader:
         Args:
             prompt_file: Dictionary containing parsed YAML data
             prompt_url: Optional URL to the template on the Hub
-            renderer: Optional template renderer type
-            jinja2_security_level: Security level for Jinja2 renderer
+            populator: Optional template populator type
+            jinja2_security_level: Security level for Jinja2 populator
 
         Returns:
             Union[TextPromptTemplate, ChatPromptTemplate]: Loaded template instance
@@ -234,14 +234,14 @@ class PromptTemplateLoader:
             return ChatPromptTemplate(
                 prompt_data=prompt_data,
                 prompt_url=prompt_url,
-                renderer=renderer,
+                populator=populator,
                 jinja2_security_level=jinja2_security_level,
             )
         elif isinstance(template_content, str):
             return TextPromptTemplate(
                 prompt_data=prompt_data,
                 prompt_url=prompt_url,
-                renderer=renderer,
+                populator=populator,
                 jinja2_security_level=jinja2_security_level,
             )
         else:

@@ -8,7 +8,7 @@ import jinja2
 import yaml
 from jinja2 import Environment, meta
 
-from .constants import Jinja2SecurityLevel, RendererType
+from .constants import Jinja2SecurityLevel, PopulatorType
 from .populated_prompt import PopulatedPrompt
 
 
@@ -40,7 +40,7 @@ class BasePromptTemplate(ABC):
         self,
         prompt_data: Dict[str, Any],
         prompt_url: Optional[str] = None,
-        renderer: Optional[RendererType] = None,
+        populator: Optional[PopulatorType] = None,
         jinja2_security_level: Jinja2SecurityLevel = "standard",
     ) -> None:
         # Set required attributes
@@ -49,36 +49,36 @@ class BasePromptTemplate(ABC):
         self.input_variables = prompt_data.get("input_variables")
         self.metadata = prompt_data.get("metadata")
 
-        # Check and validate renderer
-        self.renderer_type: RendererType
-        self.renderer: TemplateRenderer
+        # Check and validate populator
+        self.populator_type: PopulatorType
+        self.populator: TemplatePopulator
 
-        if renderer is not None:
-            # Use explicitly specified renderer
-            if renderer == "jinja2":
-                self.renderer = Jinja2TemplateRenderer(security_level=jinja2_security_level)
-                self.renderer_type = "jinja2"
-            elif renderer == "double_brace":
-                self.renderer = DoubleBraceRenderer()
-                self.renderer_type = "double_brace"
-            elif renderer == "single_brace":
-                self.renderer = SingleBraceRenderer()
-                self.renderer_type = "single_brace"
+        if populator is not None:
+            # Use explicitly specified populator
+            if populator == "jinja2":
+                self.populator = Jinja2TemplatePopulator(security_level=jinja2_security_level)
+                self.populator_type = "jinja2"
+            elif populator == "double_brace":
+                self.populator = DoubleBracePopulator()
+                self.populator_type = "double_brace"
+            elif populator == "single_brace":
+                self.populator = SingleBracePopulator()
+                self.populator_type = "single_brace"
             else:
                 raise ValueError(
-                    f"Unknown renderer type: {renderer}. Valid options are: double_brace, single_brace, jinja2"
+                    f"Unknown populator type: {populator}. Valid options are: double_brace, single_brace, jinja2"
                 )
         else:
-            # Auto-detect renderer
+            # Auto-detect populator
             if self._detect_jinja2_syntax():
-                self.renderer = Jinja2TemplateRenderer(security_level=jinja2_security_level)
-                self.renderer_type = "jinja2"
+                self.populator = Jinja2TemplatePopulator(security_level=jinja2_security_level)
+                self.populator_type = "jinja2"
             elif self._detect_double_brace_syntax():
-                self.renderer = DoubleBraceRenderer()
-                self.renderer_type = "double_brace"
+                self.populator = DoubleBracePopulator()
+                self.populator_type = "double_brace"
             else:
-                self.renderer = SingleBraceRenderer()
-                self.renderer_type = "single_brace"
+                self.populator = SingleBracePopulator()
+                self.populator_type = "single_brace"
 
         # Validate alignment between template variables and input_variables
         if self.input_variables:
@@ -153,20 +153,21 @@ class BasePromptTemplate(ABC):
         )
         return f"{self.__class__.__name__}({attributes})"
 
-    def _fill_placeholders(self, template_part: Any, user_provided_variables: Dict[str, Any]) -> Any:
+    def _populate_placeholders(self, template_part: Any, user_provided_variables: Dict[str, Any]) -> Any:
         """Recursively fill placeholders in strings or nested structures like dicts or lists."""
         if isinstance(template_part, str):
             # fill placeholders in strings
-            return self.renderer.render(template_part, user_provided_variables)
+            return self.populator.populate(template_part, user_provided_variables)
         elif isinstance(template_part, dict):
             # Recursively handle dictionaries
             return {
-                key: self._fill_placeholders(value, user_provided_variables) for key, value in template_part.items()
+                key: self._populate_placeholders(value, user_provided_variables)
+                for key, value in template_part.items()
             }
 
         elif isinstance(template_part, list):
             # Recursively handle lists
-            return [self._fill_placeholders(item, user_provided_variables) for item in template_part]
+            return [self._populate_placeholders(item, user_provided_variables) for item in template_part]
 
         return template_part  # For non-string, non-dict, non-list types, return as is
 
@@ -234,10 +235,10 @@ class BasePromptTemplate(ABC):
         """
         template_variables = set()
         if isinstance(self.template, str):
-            template_variables = self.renderer.get_variable_names(self.template)
+            template_variables = self.populator.get_variable_names(self.template)
         elif isinstance(self.template, list) and any(isinstance(item, dict) for item in self.template):
             for message in self.template:
-                template_variables.update(self.renderer.get_variable_names(message["content"]))
+                template_variables.update(self.populator.get_variable_names(message["content"]))
         return template_variables
 
     def _detect_double_brace_syntax(self) -> bool:
@@ -338,7 +339,7 @@ class TextPromptTemplate(BasePromptTemplate):
             PopulatedPrompt: A PopulatedPrompt object containing the populated prompt string.
         """
         self._validate_user_provided_variables(user_provided_variables)
-        populated_prompt = self._fill_placeholders(self.template, user_provided_variables)
+        populated_prompt = self._populate_placeholders(self.template, user_provided_variables)
         return PopulatedPrompt(content=populated_prompt)
 
     def to_langchain_template(self) -> "LC_PromptTemplate":
@@ -443,7 +444,7 @@ class ChatPromptTemplate(BasePromptTemplate):
         self._validate_user_provided_variables(user_provided_variables)
 
         messages_template_populated = [
-            {**message, "content": self._fill_placeholders(message["content"], user_provided_variables)}
+            {**message, "content": self._populate_placeholders(message["content"], user_provided_variables)}
             for message in self.template
         ]
         return PopulatedPrompt(content=messages_template_populated)
@@ -527,12 +528,12 @@ class ChatPromptTemplate(BasePromptTemplate):
         )
 
 
-class TemplateRenderer(ABC):
-    """Abstract base class for template rendering strategies."""
+class TemplatePopulator(ABC):
+    """Abstract base class for template populating strategies."""
 
     @abstractmethod
-    def render(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
-        """Render the template with given user_provided_variables."""
+    def populate(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
+        """Populate the template with given user_provided_variables."""
         pass
 
     @abstractmethod
@@ -541,10 +542,10 @@ class TemplateRenderer(ABC):
         pass
 
 
-class SingleBraceRenderer(TemplateRenderer):
-    """Template renderer using regex for basic {var} substitution."""
+class SingleBracePopulator(TemplatePopulator):
+    """Template populator using regex for basic {var} substitution."""
 
-    def render(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
+    def populate(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
         pattern = re.compile(r"\{([^{}]+)\}")
 
         def replacer(match: Match[str]) -> str:
@@ -560,10 +561,10 @@ class SingleBraceRenderer(TemplateRenderer):
         return {match.group(1).strip() for match in pattern.finditer(template_str)}
 
 
-class DoubleBraceRenderer(TemplateRenderer):
-    """Template renderer using regex for {{var}} substitution."""
+class DoubleBracePopulator(TemplatePopulator):
+    """Template populator using regex for {{var}} substitution."""
 
-    def render(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
+    def populate(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
         pattern = re.compile(r"\{\{([^{}]+)\}\}")
 
         def replacer(match: Match[str]) -> str:
@@ -579,8 +580,8 @@ class DoubleBraceRenderer(TemplateRenderer):
         return {match.group(1).strip() for match in pattern.finditer(template_str)}
 
 
-class Jinja2TemplateRenderer(TemplateRenderer):
-    """Jinja2 template renderer with configurable security levels.
+class Jinja2TemplatePopulator(TemplatePopulator):
+    """Jinja2 template populator with configurable security levels.
 
     Security Levels:
         - strict: Minimal set of features, highest security
@@ -686,13 +687,13 @@ class Jinja2TemplateRenderer(TemplateRenderer):
         for unsafe in unsafe_tests:
             self.env.tests.pop(unsafe, None)
 
-    def render(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
-        """Render the template with given user_provided_variables."""
+    def populate(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
+        """Populate the template with given user_provided_variables."""
         try:
             template = self.env.from_string(template_str)
-            rendered = template.render(**user_provided_variables)
+            populated = template.render(**user_provided_variables)
             # Ensure we return a string for mypy
-            return str(rendered)
+            return str(populated)
         except jinja2.TemplateSyntaxError as e:
             raise ValueError(
                 f"Invalid template syntax at line {e.lineno}: {str(e)}\n" f"Security level: {self.security_level}"
@@ -702,7 +703,7 @@ class Jinja2TemplateRenderer(TemplateRenderer):
                 f"Undefined variable in template: {str(e)}\n" "Make sure all required variables are provided"
             ) from e
         except Exception as e:
-            raise ValueError(f"Error rendering template: {str(e)}") from e
+            raise ValueError(f"Error populating template: {str(e)}") from e
 
     def get_variable_names(self, template_str: str) -> Set[str]:
         """Extract variable names from template."""
