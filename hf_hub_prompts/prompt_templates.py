@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Match, Optional, Set, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Match, Optional, Set
 
 import jinja2
 import yaml
@@ -139,9 +139,6 @@ class BasePromptTemplate(ABC):
             print(json.dumps(display_dict, indent=2), end="")
         elif format == "yaml":
             print(yaml.dump(display_dict, default_flow_style=False, sort_keys=False), end="")
-
-    def to_dict(self) -> Dict[str, Any]:
-        return self.__dict__
 
     def __getitem__(self, key: str) -> Any:
         return self.__dict__[key]
@@ -307,7 +304,7 @@ class TextPromptTemplate(BasePromptTemplate):
         ...     language="French",
         ...     text="Hello world!"
         ... )
-        >>> prompt.content
+        >>> print(prompt)
         'Translate the following text to French:\\nHello world!'
     """
 
@@ -329,7 +326,7 @@ class TextPromptTemplate(BasePromptTemplate):
             ...     language="French",
             ...     text="Hello world!"
             ... )
-            >>> prompt.content
+            >>> print(prompt)
             'Translate the following text to French:\\nHello world!'
 
         Args:
@@ -393,26 +390,26 @@ class ChatPromptTemplate(BasePromptTemplate):
         ['concept', 'programming_language']
 
         >>> # Populate the template
-        >>> prompt = prompt_template.populate_template(
+        >>> messages = prompt_template.populate_template(
         ...     concept="list comprehension",
         ...     programming_language="Python"
         ... )
-        >>> prompt.content
+        >>> print(messages)
         [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]
 
         >>> # By default, the populated prompt is in the OpenAI messages format, as it is adopted by many open-source libraries
         >>> # You can convert to formats used by other LLM clients like Anthropic like this:
         >>> messages_anthropic = prompt.format_for_client("anthropic")
-        >>> messages_anthropic
+        >>> print(messages_anthropic)
         {'system': 'You are a coding assistant who explains concepts clearly and provides short examples.', 'messages': [{'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]}
 
-        >>> # Convenience method to populate and format in one step
-        >>> messages = prompt_template.create_messages(
+        >>> # Convenience method to populate and format in one step for clients that do not use the OpenAI messages format
+        >>> messages_anthropic = prompt_template.create_messages(
         ...     client="anthropic",
         ...     concept="list comprehension",
         ...     programming_language="Python"
         ... )
-        >>> messages
+        >>> print(messages_anthropic)
         {'system': 'You are a coding assistant who explains concepts clearly and provides short examples.', 'messages': [{'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]}
     """
 
@@ -428,11 +425,11 @@ class ChatPromptTemplate(BasePromptTemplate):
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
-            >>> prompt = prompt_template.populate_template(
+            >>> messages = prompt_template.populate_template(
             ...     concept="list comprehension",
             ...     programming_language="Python"
             ... )
-            >>> prompt.content
+            >>> print(messages)
             [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]
 
         Args:
@@ -449,10 +446,10 @@ class ChatPromptTemplate(BasePromptTemplate):
         ]
         return PopulatedPrompt(content=messages_template_populated)
 
-    def create_messages(
-        self, client: str = "openai", **user_provided_variables: Any
-    ) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
-        """Convenience method to populate a prompt template and format for client in one step.
+    def create_messages(self, client: str = "openai", **user_provided_variables: Any) -> PopulatedPrompt:
+        """Convenience method that populates a prompt template and formats it for a client in one step.
+        This method is only useful if your a client that does not use the OpenAI messages format, because
+        populating a ChatPromptTemplate converts it into the OpenAI messages format by default.
 
         Examples:
             >>> from hf_hub_prompts import PromptTemplateLoader
@@ -465,7 +462,7 @@ class ChatPromptTemplate(BasePromptTemplate):
             ...     concept="list comprehension",
             ...     programming_language="Python"
             ... )
-            >>> messages
+            >>> print(messages)
             [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]
 
             >>> # Format for Anthropic
@@ -480,10 +477,10 @@ class ChatPromptTemplate(BasePromptTemplate):
         Args:
             client (str): The client format to use ('openai', 'anthropic'). Defaults to 'openai'.
             **user_provided_variables: The variables to fill into the prompt template. For example, if your template
-                expects variables like 'name' and 'age', pass them as keyword arguments:
+                expects variables like 'name' and 'age', pass them as keyword arguments.
 
         Returns:
-            Union[List[Dict[str, Any]], Dict[str, Any]]: Populated and formatted messages.
+            PopulatedPrompt: A populated prompt formatted for the specified client.
         """
         if "client" in user_provided_variables:
             logger.warning(
