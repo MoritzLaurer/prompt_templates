@@ -32,7 +32,7 @@ class PromptTemplateLoader:
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="code_teacher.yaml"
         ... )
-        >>> template.messages
+        >>> template.template
         [{'role': 'system', 'content': 'You are a coding assistant...'}, ...]
 
         Load a template from a local file:
@@ -141,7 +141,7 @@ class PromptTemplateLoader:
             ...     filename="code_teacher.yaml"
             ... )
             >>> # Inspect the template
-            >>> prompt_template.messages
+            >>> prompt_template.template
             [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
             >>> prompt_template.input_variables
             ['concept', 'programming_language']
@@ -194,6 +194,8 @@ class PromptTemplateLoader:
         Args:
             prompt_file: Dictionary containing parsed YAML data
             prompt_url: Optional URL to the template on the Hub
+            renderer: Optional template renderer type
+            jinja2_security_level: Security level for Jinja2 renderer
 
         Returns:
             Union[TextPromptTemplate, ChatPromptTemplate]: Loaded template instance
@@ -210,15 +212,32 @@ class PromptTemplateLoader:
 
         prompt_data = prompt_file["prompt"]
 
-        # Determine which PromptTemplate class to instantiate
-        if "messages" in prompt_data:
+        # Check for standard "template" key and rename if "messages" is used
+        if "template" not in prompt_data:
+            if "messages" in prompt_data:
+                prompt_data = {**prompt_data, "template": prompt_data["messages"]}
+                del prompt_data["messages"]
+                logger.info(
+                    "The YAML file uses the 'messages' key for the chat prompt template following the LangChain format. "
+                    "The 'messages' key is renamed to 'template' for simplicity and consistency in this library."
+                )
+            else:
+                raise ValueError(
+                    f"Invalid YAML structure under 'prompt' key: {list(prompt_data.keys())}. "
+                    "The YAML file must contain a 'template' key under 'prompt'. "
+                    "Please refer to the documentation for a compatible YAML example."
+                )
+
+        # Determine template type based on template content
+        template_content = prompt_data["template"]
+        if isinstance(template_content, list) and any(isinstance(item, dict) for item in template_content):
             return ChatPromptTemplate(
                 prompt_data=prompt_data,
                 prompt_url=prompt_url,
                 renderer=renderer,
                 jinja2_security_level=jinja2_security_level,
             )
-        elif "template" in prompt_data:
+        elif isinstance(template_content, str):
             return TextPromptTemplate(
                 prompt_data=prompt_data,
                 prompt_url=prompt_url,
@@ -227,9 +246,8 @@ class PromptTemplateLoader:
             )
         else:
             raise ValueError(
-                f"Invalid YAML structure under 'prompt' key: {list(prompt_data.keys())}. "
-                "The YAML file must contain either 'messages' or 'template' key under 'prompt'. "
-                "Please refer to the documentation for a compatible YAML example."
+                f"Invalid template type: {type(template_content)}. "
+                "Template must be either a string for text prompts or a list of dictionaries for chat prompts."
             )
 
 

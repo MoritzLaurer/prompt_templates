@@ -43,7 +43,13 @@ class BasePromptTemplate(ABC):
         renderer: Optional[RendererType] = None,
         jinja2_security_level: Jinja2SecurityLevel = "standard",
     ) -> None:
-        # Track which renderer is being used
+        # Set required attributes
+        self.template = prompt_data["template"]
+        # Set optional standard attributes
+        self.input_variables = prompt_data.get("input_variables")
+        self.metadata = prompt_data.get("metadata")
+
+        # Check and validate renderer
         self.renderer_type: RendererType
         self.renderer: TemplateRenderer
 
@@ -64,22 +70,15 @@ class BasePromptTemplate(ABC):
                 )
         else:
             # Auto-detect renderer
-            if self._detect_jinja2_syntax(prompt_data):
+            if self._detect_jinja2_syntax():
                 self.renderer = Jinja2TemplateRenderer(security_level=jinja2_security_level)
                 self.renderer_type = "jinja2"
-            elif self._detect_double_brace_syntax(prompt_data):
+            elif self._detect_double_brace_syntax():
                 self.renderer = DoubleBraceRenderer()
                 self.renderer_type = "double_brace"
             else:
                 self.renderer = SingleBraceRenderer()
                 self.renderer_type = "single_brace"
-
-        # Set template-specific required attributes
-        self._set_required_attributes_for_template_type(prompt_data)
-
-        # Set optional standard attributes that are the same across all templates
-        self.input_variables = prompt_data.get("input_variables")
-        self.metadata = prompt_data.get("metadata")
 
         # Validate alignment between template variables and input_variables
         if self.input_variables:
@@ -87,23 +86,11 @@ class BasePromptTemplate(ABC):
 
         # Store any additional optional data that might be present in the prompt data
         self.other_data = {
-            k: v
-            for k, v in prompt_data.items()
-            if k not in ["metadata", "input_variables"] + self._get_required_attributes_for_template_type()
+            k: v for k, v in prompt_data.items() if k not in ["template", "metadata", "input_variables"]
         }
 
         if prompt_url is not None:
             self.other_data["prompt_url"] = prompt_url
-
-    @abstractmethod
-    def _get_required_attributes_for_template_type(self) -> List[str]:
-        """Return list of required keys for this template type."""
-        pass
-
-    @abstractmethod
-    def _set_required_attributes_for_template_type(self, prompt_data: Dict[str, Any]) -> None:
-        """Set required attributes for this template type."""
-        pass
 
     @abstractmethod
     def populate_template(self, **user_provided_variables: Any) -> PopulatedPrompt:
@@ -240,20 +227,20 @@ class BasePromptTemplate(ABC):
             raise ValueError("\n".join(error_msg))
 
     def _get_template_variables(self) -> Set[str]:
-        """Get all variables used as placeholders in the template content.
+        """Get all variables used as placeholders in the template string or messages dictionary.
 
         Returns:
             Set of variable names used as placeholders in the template
         """
         template_variables = set()
-        if hasattr(self, "template"):
+        if isinstance(self.template, str):
             template_variables = self.renderer.get_variable_names(self.template)
-        elif hasattr(self, "messages"):
-            for msg in self.messages:
-                template_variables.update(self.renderer.get_variable_names(msg["content"]))
+        elif isinstance(self.template, list) and any(isinstance(item, dict) for item in self.template):
+            for message in self.template:
+                template_variables.update(self.renderer.get_variable_names(message["content"]))
         return template_variables
 
-    def _detect_double_brace_syntax(self, prompt_data: Dict[str, Any]) -> bool:
+    def _detect_double_brace_syntax(self) -> bool:
         """Detect if the template uses simple {{var}} syntax without Jinja2 features."""
 
         def contains_double_brace(text: str) -> bool:
@@ -261,13 +248,13 @@ class BasePromptTemplate(ABC):
             basic_var = r"\{\{[^{}|.\[]+\}\}"  # Only match simple variables
             return bool(re.search(basic_var, text))
 
-        if "template" in prompt_data:
-            return contains_double_brace(prompt_data["template"])
-        elif "messages" in prompt_data:
-            return any(contains_double_brace(msg["content"]) for msg in prompt_data["messages"])
+        if isinstance(self.template, str):
+            return contains_double_brace(self.template)
+        elif isinstance(self.template, list) and any(isinstance(item, dict) for item in self.template):
+            return any(contains_double_brace(message["content"]) for message in self.template)
         return False
 
-    def _detect_jinja2_syntax(self, prompt_data: Dict[str, Any]) -> bool:
+    def _detect_jinja2_syntax(self) -> bool:
         """Detect if the template uses Jinja2 syntax.
 
         Looks for Jinja2-specific patterns:
@@ -288,10 +275,10 @@ class BasePromptTemplate(ABC):
             ]
             return any(re.search(pattern, text) for pattern in patterns)
 
-        if "template" in prompt_data:
-            return contains_jinja2(prompt_data["template"])
-        elif "messages" in prompt_data:
-            return any(contains_jinja2(msg["content"]) for msg in prompt_data["messages"])
+        if isinstance(self.template, str):
+            return contains_jinja2(self.template)
+        elif isinstance(self.template, list) and any(isinstance(item, dict) for item in self.template):
+            return any(contains_jinja2(message["content"]) for message in self.template)
         return False
 
 
@@ -326,14 +313,6 @@ class TextPromptTemplate(BasePromptTemplate):
     # Type hints for template-specific attributes
     template: str
 
-    def _get_required_attributes_for_template_type(self) -> List[str]:
-        return ["template"]
-
-    def _set_required_attributes_for_template_type(self, prompt_data: Dict[str, Any]) -> None:
-        if "template" not in prompt_data:
-            raise ValueError("You must provide 'template' in prompt_data")
-        self.template = prompt_data["template"]
-
     def populate_template(self, **user_provided_variables: Any) -> PopulatedPrompt:
         """Populate the prompt by replacing placeholders with provided values.
 
@@ -353,7 +332,7 @@ class TextPromptTemplate(BasePromptTemplate):
             'Translate the following text to French:\\nHello world!'
 
         Args:
-            **input_variables: The values to fill placeholders in the prompt template.
+            **user_provided_variables: The values to fill placeholders in the prompt template.
 
         Returns:
             PopulatedPrompt: A PopulatedPrompt object containing the populated prompt string.
@@ -407,7 +386,7 @@ class ChatPromptTemplate(BasePromptTemplate):
         ...     filename="code_teacher.yaml"
         ... )
         >>> # Inspect template attributes
-        >>> prompt_template.messages
+        >>> prompt_template.template
         [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
         >>> prompt_template.input_variables
         ['concept', 'programming_language']
@@ -437,18 +416,10 @@ class ChatPromptTemplate(BasePromptTemplate):
     """
 
     # Type hints for template-specific attributes
-    messages: List[Dict[str, Any]]
-
-    def _get_required_attributes_for_template_type(self) -> List[str]:
-        return ["messages"]
-
-    def _set_required_attributes_for_template_type(self, prompt_data: Dict[str, Any]) -> None:
-        if "messages" not in prompt_data:
-            raise ValueError("You must provide 'messages' in prompt_data")
-        self.messages = prompt_data["messages"]
+    template: List[Dict[str, Any]]
 
     def populate_template(self, **user_provided_variables: Any) -> PopulatedPrompt:
-        """Populate the prompt messages by replacing placeholders with provided values.
+        """Populate the prompt template messages by replacing placeholders with provided values.
 
         Examples:
             >>> from hf_hub_prompts import PromptTemplateLoader
@@ -464,18 +435,18 @@ class ChatPromptTemplate(BasePromptTemplate):
             [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]
 
         Args:
-            **user_provided_variables: The values to fill placeholders in the messages.
+            **user_provided_variables: The values to fill placeholders in the messages template.
 
         Returns:
-            PopulatedPrompt: A PopulatedPrompt object containing the populated messages.
+            PopulatedPrompt: A PopulatedPrompt object containing the populated messages prompt.
         """
         self._validate_user_provided_variables(user_provided_variables)
 
-        messages_populated = [
-            {**msg, "content": self._fill_placeholders(msg["content"], user_provided_variables)}
-            for msg in self.messages
+        messages_template_populated = [
+            {**message, "content": self._fill_placeholders(message["content"], user_provided_variables)}
+            for message in self.template
         ]
-        return PopulatedPrompt(content=messages_populated)
+        return PopulatedPrompt(content=messages_template_populated)
 
     def create_messages(
         self, client: str = "openai", **user_provided_variables: Any
@@ -550,7 +521,7 @@ class ChatPromptTemplate(BasePromptTemplate):
             raise ImportError("LangChain is not installed. Please install it with 'pip install langchain'") from e
 
         return LC_ChatPromptTemplate(
-            messages=[(msg["role"], msg["content"]) for msg in self.messages],
+            messages=[(message["role"], message["content"]) for message in self.template],
             input_variables=self.input_variables,
             metadata=self.metadata,
         )

@@ -24,10 +24,10 @@ class PopulatedPrompt:
     content: Union[str, List[Dict[str, Any]]]
 
     def format_for_client(self, client: str = "openai") -> Union[List[Dict[str, Any]], Dict[str, Any]]:
-        """Format the prompt content for a specific client.
+        """Format the chat messages prompt for a specific LLM client.
 
         Examples:
-            Format chat messages for different clients:
+            Format chat messages for different LLM clients:
             >>> from hf_hub_prompts import PromptTemplateLoader
             >>> prompt_template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
@@ -59,17 +59,9 @@ class PopulatedPrompt:
             Union[List[Dict[str, Any]], Dict[str, Any]]: Formatted prompt content suitable for the specified client.
 
         Raises:
-            ValueError: If an unsupported client format is specified or if trying to format a text prompt.
+            ValueError: If an unsupported client format is specified or if trying to format a non-messages template.
         """
-        if isinstance(self.content, str):
-            # For standard prompts, format_for_client does not add value
-            raise ValueError(
-                f"format_for_client is only applicable to chat-based prompts with a list of messages. "
-                f"The content of this prompt is of type: {type(self.content).__name__}. "
-                "For standard prompts, you can use the content directly with any client."
-            )
-        elif isinstance(self.content, list):
-            # For chat prompts, format messages accordingly
+        if isinstance(self.content, list) and any(isinstance(item, dict) for item in self.content):
             if client == "openai":
                 return self.content
             elif client == "anthropic":
@@ -79,7 +71,11 @@ class PopulatedPrompt:
                     f"Unsupported client format: {client}. Supported formats are: {SUPPORTED_CLIENT_FORMATS}"
                 )
         else:
-            raise ValueError("PopulatedPrompt content must be either a string or a list of messages.")
+            raise ValueError(
+                f"format_for_client is only applicable to chat-based prompts with a list of message dictionaries. "
+                f"The content of this prompt is of type: {type(self.content).__name__}. "
+                "For standard prompts, you can use the content directly with any client."
+            )
 
     def _format_for_anthropic(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Format messages for the Anthropic client."""

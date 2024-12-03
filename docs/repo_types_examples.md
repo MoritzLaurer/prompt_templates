@@ -39,10 +39,10 @@ prompt_template = PromptTemplateLoader.from_hub(
 )
 
 print(prompt_template)
-# ChatPromptTemplate(messages=[{'role': 'system', 'content': '<artifacts_info> The assistant can create and reference artifacts during conversations. Artifacts are ... Claude is now being connected with a human.'}, {'role': 'user', 'content': '{user_message}'}], input_variables=['current_date', 'user_message'], metadata=[{'source': 'https://gist.github.com/dedlim/6bf6d81f77c19e20cd40594aa09e3ecd'}])
+# ChatPromptTemplate(template=[{'role': 'system', 'content': '<artifacts_info> The assistant can create and reference artifacts during conversations. Artifacts are ... Claude is now being connected with a human.'}, {'role': 'user', 'content': '{user_message}'}], input_variables=['current_date', 'user_message'], metadata=[{'source': 'https://gist.github.com/dedlim/6bf6d81f77c19e20cd40594aa09e3ecd'}])
 ```
 
-Prompt templates are downloaded as either `ChatPromptTemplate` or `TextPromptTemplate` classes. This class makes it easy to populate a prompt template and convert it into a format that's compatible with different LLM clients.The type is automatically determined based on whether the YAML contains a 'template' key (TextPromptTemplate) or a 'messages' key (ChatPromptTemplate).
+Prompt templates are downloaded as either `ChatPromptTemplate` or `TextPromptTemplate` classes. This class makes it easy to populate a prompt template and convert it into a format that's compatible with different LLM clients. The type is automatically determined based on whether the YAML contains a simple string (TextPromptTemplate) or a list of dictionaries following the OpenAI messages format (ChatPromptTemplate).
 
 #### Populate and use the prompt template
 With the `create_messages` method, we can then populate the prompt template for a specific use-case.

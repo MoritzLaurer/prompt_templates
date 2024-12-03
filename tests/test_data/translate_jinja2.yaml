@@ -1,5 +1,5 @@
 prompt:
-  messages:
+  template:
     - role: "system"
       content: |-
         You are an expert translator who can translate English text to {{ languages }}.
