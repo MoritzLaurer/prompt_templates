@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Match, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Match, Optional, Set, Tuple, Union
 
 import jinja2
 import yaml
@@ -31,66 +31,52 @@ class BasePromptTemplate(ABC):
     or ChatPromptTemplate, which are subclasses of BasePromptTemplate.
     """
 
-    # Type hints for optional standard attributes shared across all template types
-    metadata: Optional[Dict[str, Any]]
-    input_variables: Optional[List[str]]
-    other_data: Dict[str, Any]
-
     def __init__(
         self,
-        prompt_data: Dict[str, Any],
-        prompt_url: Optional[str] = None,
+        template: Union[str, List[Dict[str, Any]]],
+        input_variables: Optional[List[str]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        other_data: Optional[Dict[str, Any]] = None,
         populator: Optional[PopulatorType] = None,
         jinja2_security_level: Jinja2SecurityLevel = "standard",
     ) -> None:
-        # Set required attributes
-        self.template = prompt_data["template"]
-        # Set optional standard attributes
-        self.input_variables = prompt_data.get("input_variables")
-        self.metadata = prompt_data.get("metadata")
+        """Initialize a prompt template.
 
-        # Check and validate populator
-        self.populator_type: PopulatorType
-        self.populator: TemplatePopulator
+        Args:
+            template: The template string or chat messages
+            input_variables: List of variables required by the template
+            metadata: Optional metadata about the prompt template
+            other_data: Optional additional data
+            populator: Optional template populator type
+            jinja2_security_level: Security level for Jinja2 populator
 
-        if populator is not None:
-            # Use explicitly specified populator
-            if populator == "jinja2":
-                self.populator = Jinja2TemplatePopulator(security_level=jinja2_security_level)
-                self.populator_type = "jinja2"
-            elif populator == "double_brace":
-                self.populator = DoubleBracePopulator()
-                self.populator_type = "double_brace"
-            elif populator == "single_brace":
-                self.populator = SingleBracePopulator()
-                self.populator_type = "single_brace"
-            else:
-                raise ValueError(
-                    f"Unknown populator type: {populator}. Valid options are: double_brace, single_brace, jinja2"
-                )
-        else:
-            # Auto-detect populator
-            if self._detect_jinja2_syntax():
-                self.populator = Jinja2TemplatePopulator(security_level=jinja2_security_level)
-                self.populator_type = "jinja2"
-            elif self._detect_double_brace_syntax():
-                self.populator = DoubleBracePopulator()
-                self.populator_type = "double_brace"
-            else:
-                self.populator = SingleBracePopulator()
-                self.populator_type = "single_brace"
+        Raises:
+            TypeError: If input types don't match expected types
+            ValueError: If template format is invalid
+        """
+        # Type validation
+        if input_variables is not None and not isinstance(input_variables, list):
+            raise TypeError(f"input_variables must be a list, got {type(input_variables).__name__}")
+        if metadata is not None and not isinstance(metadata, dict):
+            raise TypeError(f"metadata must be a dict, got {type(metadata).__name__}")
+        if other_data is not None and not isinstance(other_data, dict):
+            raise TypeError(f"other_data must be a dict, got {type(other_data).__name__}")
 
-        # Validate alignment between template variables and input_variables
+        # Format validation
+        self._validate_template_format(template)
+
+        # Initialize attributes
+        self.template = template
+        self.input_variables = input_variables or []
+        self.metadata = metadata or {}
+        self.other_data = other_data or {}
+
+        # set up the template populator
+        self._set_up_populator(populator, jinja2_security_level)
+
+        # Validate that variables provided in template and input_variables are equal
         if self.input_variables:
-            self._validate_template_input_variables_alignment()
-
-        # Store any additional optional data that might be present in the prompt data
-        self.other_data = {
-            k: v for k, v in prompt_data.items() if k not in ["template", "metadata", "input_variables"]
-        }
-
-        if prompt_url is not None:
-            self.other_data["prompt_url"] = prompt_url
+            self._validate_template_input_variables_equality()
 
     @abstractmethod
     def populate_template(self, **user_provided_variables: Any) -> PopulatedPrompt:
@@ -177,52 +163,66 @@ class BasePromptTemplate(ABC):
         Raises:
             ValueError: If validation fails
         """
-        # Since template_variables and input_variables are already aligned based on _validate_template_input_variables_alignment, we can validate against either
+        # We know that template variables and input_variables are equal based on _validate_template_input_variables_equality, so we can validate against either
         required_variables = set(self.input_variables) if self.input_variables else self._get_template_variables()
+        provided_variables = set(user_provided_variables.keys())
 
-        # Validate that user provided all required variables
-        missing_vars = required_variables - set(user_provided_variables.keys())
-        unexpected_vars = set(user_provided_variables.keys()) - required_variables
+        # Check for missing and unexpected variables
+        missing_vars = required_variables - provided_variables
+        unexpected_vars = provided_variables - required_variables
 
         if missing_vars or unexpected_vars:
-            error_msg = []
+            error_parts = []
+
             if missing_vars:
-                error_msg.append(f"Missing required variables to fully populate the template: {list(missing_vars)}")
+                error_parts.append(
+                    f"Missing required variables:\n"
+                    f"  Required: {sorted(missing_vars)}\n"
+                    f"  Provided: {sorted(provided_variables)}"
+                )
+
             if unexpected_vars:
-                error_msg.append(f"Unexpected variables that are not used in the template: {list(unexpected_vars)}")
+                error_parts.append(
+                    f"Unexpected variables provided:\n"
+                    f"  Expected required variables: {sorted(required_variables)}\n"
+                    f"  Extra variables: {sorted(unexpected_vars)}"
+                )
+
             if "prompt_url" in self.other_data:
-                error_msg.append(f"Template URL: {self.other_data['prompt_url']}")
-            raise ValueError("\n".join(error_msg))
+                error_parts.append(f"\nTemplate URL: {self.other_data['prompt_url']}")
 
-    def _validate_template_input_variables_alignment(self) -> None:
-        """Validate that declared input_variables match variables found in the template string.
+            raise ValueError("\n".join(error_parts))
 
-        Raises:
-            ValueError: If there's a mismatch between declared input_variables and template variables
-        """
-        # Get variables found in template
+    def _validate_template_input_variables_equality(self) -> None:
+        """Validate that the declared input_variables and template variables are identical."""
         template_variables = self._get_template_variables()
+        input_variables = set(self.input_variables or [])
 
-        # get input_variables (and handle None case for type checking)
-        input_variables = self.input_variables if self.input_variables is not None else []
-
-        # Check for mismatches between declared input_variables and template variables
-        undeclared_template_vars = template_variables - set(input_variables)
-        unused_input_vars = set(input_variables) - template_variables
+        # Check for mismatches
+        undeclared_template_vars = template_variables - input_variables
+        unused_input_vars = input_variables - template_variables
 
         if undeclared_template_vars or unused_input_vars:
-            error_msg = []
+            error_parts = []
+
             if undeclared_template_vars:
-                error_msg.append(
-                    f"Template uses variables that are not declared in input_variables: {list(undeclared_template_vars)}"
+                error_parts.append(
+                    f"Template contains variables that are not declared in input_variables: {list(undeclared_template_vars)}"
                 )
             if unused_input_vars:
-                error_msg.append(
+                error_parts.append(
                     f"input_variables declares variables that are not used in template: {list(unused_input_vars)}"
                 )
+
+            template_extract = (
+                str(self.template)[:100] + "..." if len(str(self.template)) > 100 else str(self.template)
+            )
+            error_parts.append(f"\nTemplate extract: {template_extract}")
+
             if "prompt_url" in self.other_data:
-                error_msg.append(f"Template URL: {self.other_data['prompt_url']}")
-            raise ValueError("\n".join(error_msg))
+                error_parts.append(f"Template URL: {self.other_data['prompt_url']}")
+
+            raise ValueError("\n".join(error_parts))
 
     def _get_template_variables(self) -> Set[str]:
         """Get all variables used as placeholders in the template string or messages dictionary.
@@ -279,50 +279,145 @@ class BasePromptTemplate(ABC):
             return any(contains_jinja2(message["content"]) for message in self.template)
         return False
 
+    def _validate_template_format(self, template: Union[str, List[Dict[str, Any]]]) -> None:
+        """Validate the format of the template at initialization."""
+        if isinstance(template, list):
+            if not all(isinstance(msg, dict) for msg in template):
+                raise ValueError("All messages in template must be dictionaries")
+
+            required_keys = {"role", "content"}
+            for msg in template:
+                missing_keys = required_keys - set(msg.keys())
+                if missing_keys:
+                    raise ValueError(
+                        f"Each message must have a 'role' and a 'content' key. Missing keys: {missing_keys}"
+                    )
+
+                if not isinstance(msg["role"], str) or not isinstance(msg["content"], str):
+                    raise ValueError("Message 'role' and 'content' must be strings")
+
+                if msg["role"] not in {"system", "user", "assistant"}:
+                    raise ValueError(f"Invalid role '{msg['role']}'. Must be one of: system, user, assistant")
+
+    def _set_up_populator(
+        self, populator: Optional[PopulatorType], jinja2_security_level: Jinja2SecurityLevel
+    ) -> None:
+        """Set up the template populator based on specified type or auto-detection.
+
+        Args:
+            populator: Optional explicit populator type ('jinja2', 'double_brace', 'single_brace')
+            jinja2_security_level: Security level for Jinja2 populator
+
+        Raises:
+            ValueError: If an unknown populator type is specified
+        """
+        self.populator_type: PopulatorType
+        self.populator: TemplatePopulator
+
+        # Check and validate populator
+        if populator is not None:
+            # Use explicitly specified populator
+            if populator == "jinja2":
+                self.populator_type = "jinja2"
+                self.populator = Jinja2TemplatePopulator(security_level=jinja2_security_level)
+            elif populator == "double_brace":
+                self.populator_type = "double_brace"
+                self.populator = DoubleBracePopulator()
+            elif populator == "single_brace":
+                self.populator_type = "single_brace"
+                self.populator = SingleBracePopulator()
+            else:
+                raise ValueError(
+                    f"Unknown populator type: {populator}. Valid options are: double_brace, single_brace, jinja2"
+                )
+        else:
+            # Auto-detect populator
+            if self._detect_jinja2_syntax():
+                self.populator_type = "jinja2"
+                self.populator = Jinja2TemplatePopulator(security_level=jinja2_security_level)
+            elif self._detect_double_brace_syntax():
+                self.populator_type = "double_brace"
+                self.populator = DoubleBracePopulator()
+            else:
+                self.populator_type = "single_brace"
+                self.populator = SingleBracePopulator()
+
 
 class TextPromptTemplate(BasePromptTemplate):
     """A class representing a standard text prompt template.
 
     Examples:
-        Download and use a text prompt template:
-        >>> from hf_hub_prompts import PromptTemplateLoader
-        >>> # Download example translation prompt
-        >>> prompt_template = PromptTemplateLoader.from_hub(
-        ...     repo_id="MoritzLaurer/example_prompts",
-        ...     filename="translate.yaml"
+        Instantiate a text prompt template:
+        >>> from hf_hub_prompts import TextPromptTemplate
+        >>> template_text = "Translate the following text to {{language}}:\n{{text}}"
+        >>> input_variables = ["language", "text"]
+        >>> metadata = {
+        ...     "name": "Simple Translator",
+        ...     "description": "A simple translation prompt for illustrating the standard prompt YAML format",
+        ...     "tags": ["translation", "multilinguality"],
+        ...     "version": "0.0.1",
+        ...     "author": "Some Person"
+        }
+        >>> template = TextPromptTemplate(
+        ...     template=template_text,
+        ...     input_variables=input_variables,
+        ...     metadata=metadata
         ... )
+        >>> print(template)
+        TextPromptTemplate(template='Translate the following text to {{language}}:\n{{text}}', input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A simple translation prompt for illustrating the standard prompt YAML format', 'tags': ['translation', 'multilinguality'], 'version': '0.0.1', 'author': 'Some Person'}, other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopulator object at 0x...>)
         >>> # Inspect template attributes
-        >>> prompt_template.template
+        >>> template.template
         'Translate the following text to {language}:\\n{text}'
-        >>> prompt_template.input_variables
+        >>> template.input_variables
         ['language', 'text']
-        >>> prompt_template.metadata['name']
+        >>> template.metadata['name']
         'Simple Translator'
-
-        >>> # Use the template
+        >>> # Populate the template
         >>> prompt = prompt_template.populate_template(
         ...     language="French",
         ...     text="Hello world!"
         ... )
         >>> print(prompt)
         'Translate the following text to French:\\nHello world!'
+
+        Or download the same text prompt template from the Hub:
+        >>> from hf_hub_prompts import PromptTemplateLoader
+        >>> template = PromptTemplateLoader.from_hub(
+        ...     repo_id="MoritzLaurer/example_prompts",
+        ...     filename="translate.yaml"
+        ... )
     """
 
-    # Type hints for template-specific attributes
-    template: str
+    def __init__(
+        self,
+        template: str,
+        input_variables: Optional[List[str]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        other_data: Optional[Dict[str, Any]] = None,
+        populator: Optional[PopulatorType] = None,
+        jinja2_security_level: Jinja2SecurityLevel = "standard",
+    ) -> None:
+        super().__init__(
+            template=template,
+            input_variables=input_variables,
+            metadata=metadata,
+            other_data=other_data,
+            populator=populator,
+            jinja2_security_level=jinja2_security_level,
+        )
 
     def populate_template(self, **user_provided_variables: Any) -> PopulatedPrompt:
         """Populate the prompt by replacing placeholders with provided values.
 
         Examples:
             >>> from hf_hub_prompts import PromptTemplateLoader
-            >>> prompt_template = PromptTemplateLoader.from_hub(
+            >>> template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
-            >>> prompt_template.template
+            >>> template.template
             'Translate the following text to {language}:\\n{text}'
-            >>> prompt = prompt_template.populate_template(
+            >>> prompt = template.populate_template(
             ...     language="French",
             ...     text="Hello world!"
             ... )
@@ -344,11 +439,11 @@ class TextPromptTemplate(BasePromptTemplate):
 
         Examples:
             >>> from hf_hub_prompts import PromptTemplateLoader
-            >>> prompt_template = PromptTemplateLoader.from_hub(
+            >>> template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
-            >>> lc_template = prompt_template.to_langchain_template()
+            >>> lc_template = template.to_langchain_template()
             >>> # test equivalence
             >>> from langchain_core.prompts import PromptTemplate as LC_PromptTemplate
             >>> isinstance(lc_template, LC_PromptTemplate)
@@ -376,21 +471,35 @@ class ChatPromptTemplate(BasePromptTemplate):
     """A class representing a chat prompt template that can be formatted for and used with various LLM clients.
 
     Examples:
-        Download and use a chat prompt template:
-        >>> from hf_hub_prompts import PromptTemplateLoader
-        >>> # Download example code teaching prompt
-        >>> prompt_template = PromptTemplateLoader.from_hub(
-        ...     repo_id="MoritzLaurer/example_prompts",
-        ...     filename="code_teacher.yaml"
+        Instantiate a chat prompt template:
+        >>> from hf_hub_prompts import ChatPromptTemplate
+        >>> template_messages = [
+        ...     {"role": "system", "content": "You are a coding assistant who explains concepts clearly and provides short examples."},
+        ...     {"role": "user", "content": "Explain what {{concept}} is in {{programming_language}}."}
+        ... ]
+        >>> input_variables = ["concept", "programming_language"]
+        >>> metadata = {
+        ...     "name": "Code Teacher",
+        ...     "description": "A simple chat prompt for explaining programming concepts with examples",
+        ...     "tags": ["programming", "education"],
+        ...     "version": "0.0.1",
+        ...     "author": "My Awesome Company"
+        ... }
+        >>> template = ChatPromptTemplate(
+        ...     template=template_messages,
+        ...     input_variables=input_variables,
+        ...     metadata=metadata
         ... )
+        >>> print(template)
+        ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., input_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
         >>> # Inspect template attributes
-        >>> prompt_template.template
+        >>> template.template
         [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
-        >>> prompt_template.input_variables
+        >>> template.input_variables
         ['concept', 'programming_language']
 
         >>> # Populate the template
-        >>> messages = prompt_template.populate_template(
+        >>> messages = template.populate_template(
         ...     concept="list comprehension",
         ...     programming_language="Python"
         ... )
@@ -411,21 +520,45 @@ class ChatPromptTemplate(BasePromptTemplate):
         ... )
         >>> print(messages_anthropic)
         {'system': 'You are a coding assistant who explains concepts clearly and provides short examples.', 'messages': [{'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]}
+
+        Or download the same chat prompt template from the Hub:
+        >>> from hf_hub_prompts import PromptTemplateLoader
+        >>> template = PromptTemplateLoader.from_hub(
+        ...     repo_id="MoritzLaurer/example_prompts",
+        ...     filename="code_teacher.yaml"
+        ... )
     """
 
-    # Type hints for template-specific attributes
-    template: List[Dict[str, Any]]
+    template: List[Dict[str, str]]
+
+    def __init__(
+        self,
+        template: List[Dict[str, Any]],
+        input_variables: Optional[List[str]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        other_data: Optional[Dict[str, Any]] = None,
+        populator: Optional[PopulatorType] = None,
+        jinja2_security_level: Jinja2SecurityLevel = "standard",
+    ) -> None:
+        super().__init__(
+            template=template,
+            input_variables=input_variables,
+            metadata=metadata,
+            other_data=other_data,
+            populator=populator,
+            jinja2_security_level=jinja2_security_level,
+        )
 
     def populate_template(self, **user_provided_variables: Any) -> PopulatedPrompt:
         """Populate the prompt template messages by replacing placeholders with provided values.
 
         Examples:
             >>> from hf_hub_prompts import PromptTemplateLoader
-            >>> prompt_template = PromptTemplateLoader.from_hub(
+            >>> template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
-            >>> messages = prompt_template.populate_template(
+            >>> messages = template.populate_template(
             ...     concept="list comprehension",
             ...     programming_language="Python"
             ... )
@@ -440,8 +573,11 @@ class ChatPromptTemplate(BasePromptTemplate):
         """
         self._validate_user_provided_variables(user_provided_variables)
 
-        messages_template_populated = [
-            {**message, "content": self._populate_placeholders(message["content"], user_provided_variables)}
+        messages_template_populated: List[Dict[str, str]] = [
+            {
+                "role": str(message["role"]),
+                "content": self._populate_placeholders(message["content"], user_provided_variables),
+            }
             for message in self.template
         ]
         return PopulatedPrompt(content=messages_template_populated)
@@ -453,12 +589,12 @@ class ChatPromptTemplate(BasePromptTemplate):
 
         Examples:
             >>> from hf_hub_prompts import PromptTemplateLoader
-            >>> prompt_template = PromptTemplateLoader.from_hub(
+            >>> template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
             >>> # Format for OpenAI (default)
-            >>> messages = prompt_template.create_messages(
+            >>> messages = template.create_messages(
             ...     concept="list comprehension",
             ...     programming_language="Python"
             ... )
@@ -497,11 +633,11 @@ class ChatPromptTemplate(BasePromptTemplate):
 
         Examples:
             >>> from hf_hub_prompts import PromptTemplateLoader
-            >>> prompt_template = PromptTemplateLoader.from_hub(
+            >>> template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
-            >>> lc_template = prompt_template.to_langchain_template()
+            >>> lc_template = template.to_langchain_template()
             >>> # test equivalence
             >>> from langchain_core.prompts import ChatPromptTemplate as LC_ChatPromptTemplate
             >>> isinstance(lc_template, LC_ChatPromptTemplate)
@@ -518,8 +654,12 @@ class ChatPromptTemplate(BasePromptTemplate):
         except ImportError as e:
             raise ImportError("LangChain is not installed. Please install it with 'pip install langchain'") from e
 
+        # LangChain expects a list of tuples of the form (role, content)
+        messages: List[Tuple[str, str]] = [
+            (str(message["role"]), str(message["content"])) for message in self.template
+        ]
         return LC_ChatPromptTemplate(
-            messages=[(message["role"], message["content"]) for message in self.template],
+            messages=messages,
             input_variables=self.input_variables,
             metadata=self.metadata,
         )

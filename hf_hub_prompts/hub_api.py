@@ -28,17 +28,26 @@ class PromptTemplateLoader:
 
     Examples:
         Load a template from the Hub:
+        >>> from hf_hub_prompts import PromptTemplateLoader
         >>> template = PromptTemplateLoader.from_hub(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="code_teacher.yaml"
         ... )
+        >>> print(template)
+        ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., input_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
         >>> template.template
         [{'role': 'system', 'content': 'You are a coding assistant...'}, ...]
+        >>> template.metadata["name"]
+        'Code Teacher'
 
         Load a template from a local file:
         >>> template = PromptTemplateLoader.from_local("./tests/test_data/translate.yaml")
+        >>> print(template)
+        TextPromptTemplate(template='Translate the following text to {{language}}:\n{{..., input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
         >>> template.template
         'Translate the following text to {language}:\\n{text}'
+        >>> template.input_variables
+        ['language', 'text']
     """
 
     @classmethod
@@ -62,9 +71,29 @@ class PromptTemplateLoader:
             ValueError: If the YAML structure is invalid
 
         Examples:
+            Download a text prompt template:
+            >>> from hf_hub_prompts import PromptTemplateLoader
             >>> template = PromptTemplateLoader.from_local("./tests/test_data/translate.yaml")
-            >>> print(template.metadata['name'])
-            Simple Translator
+            >>> print(template)
+            TextPromptTemplate(template='Translate the following text to {{language}}:\n{{..., input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+            >>> template.template
+            'Translate the following text to {language}:\\n{text}'
+            >>> template.input_variables
+            ['language', 'text']
+            >>> template.metadata['name']
+            'Simple Translator'
+
+            Download a chat prompt template:
+            >>> template = PromptTemplateLoader.from_local("./tests/test_data/code_teacher.yaml")
+            >>> print(template)
+            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}], input_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+            >>> template.template
+            [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
+            >>> template.input_variables
+            ['concept', 'programming_language']
+            >>> template.metadata['version']
+            '0.0.1'
+
         """
         path = Path(path)
         if not path.exists():
@@ -119,33 +148,33 @@ class PromptTemplateLoader:
             ValueError: If the YAML structure is invalid
 
         Examples:
-            Download and use a text prompt template:
+            Download a text prompt template:
             >>> from hf_hub_prompts import PromptTemplateLoader
-            >>> # Download translation prompt
-            >>> prompt_template = PromptTemplateLoader.from_hub(
+            >>> template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
-            >>> # Inspect the template
-            >>> prompt_template.template
+            >>> print(template)
+            TextPromptTemplate(template='Translate the following text to {{language}}:\n{{..., input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+            >>> template.template
             'Translate the following text to {language}:\\n{text}'
-            >>> prompt_template.input_variables
+            >>> template.input_variables
             ['language', 'text']
-            >>> prompt_template.metadata['name']
+            >>> template.metadata['name']
             'Simple Translator'
 
-            Download and use a chat prompt template:
-            >>> # Downloadas code teaching prompt
-            >>> prompt_template = PromptTemplateLoader.from_hub(
+            Download a chat prompt template:
+            >>> template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
-            >>> # Inspect the template
-            >>> prompt_template.template
+            >>> print(template)
+            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}], input_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+            >>> template.template
             [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
-            >>> prompt_template.input_variables
+            >>> template.input_variables
             ['concept', 'programming_language']
-            >>> prompt_template.metadata['version']
+            >>> template.metadata['version']
             '0.0.1'
         """
         # Validate Hub parameters
@@ -212,10 +241,10 @@ class PromptTemplateLoader:
 
         prompt_data = prompt_file["prompt"]
 
-        # Check for standard "template" key and rename if "messages" is used
+        # Check for standard "template" key
         if "template" not in prompt_data:
             if "messages" in prompt_data:
-                prompt_data = {**prompt_data, "template": prompt_data["messages"]}
+                template = prompt_data["messages"]
                 del prompt_data["messages"]
                 logger.info(
                     "The YAML file uses the 'messages' key for the chat prompt template following the LangChain format. "
@@ -227,26 +256,38 @@ class PromptTemplateLoader:
                     "The YAML file must contain a 'template' key under 'prompt'. "
                     "Please refer to the documentation for a compatible YAML example."
                 )
+        else:
+            template = prompt_data["template"]
 
-        # Determine template type based on template content
-        template_content = prompt_data["template"]
-        if isinstance(template_content, list) and any(isinstance(item, dict) for item in template_content):
+        # Extract other fields
+        input_variables = prompt_data.get("input_variables")
+        metadata = prompt_data.get("metadata")
+        other_data = {k: v for k, v in prompt_data.items() if k not in ["template", "metadata", "input_variables"]}
+        if prompt_url:
+            other_data["prompt_url"] = prompt_url
+
+        # Determine template type and create appropriate instance
+        if isinstance(template, list) and any(isinstance(item, dict) for item in template):
             return ChatPromptTemplate(
-                prompt_data=prompt_data,
-                prompt_url=prompt_url,
+                template=template,
+                input_variables=input_variables,
+                metadata=metadata,
+                other_data=other_data,
                 populator=populator,
                 jinja2_security_level=jinja2_security_level,
             )
-        elif isinstance(template_content, str):
+        elif isinstance(template, str):
             return TextPromptTemplate(
-                prompt_data=prompt_data,
-                prompt_url=prompt_url,
+                template=template,
+                input_variables=input_variables,
+                metadata=metadata,
+                other_data=other_data,
                 populator=populator,
                 jinja2_security_level=jinja2_security_level,
             )
         else:
             raise ValueError(
-                f"Invalid template type: {type(template_content)}. "
+                f"Invalid template type: {type(template)}. "
                 "Template must be either a string for text prompts or a list of dictionaries for chat prompts."
             )
 
@@ -521,7 +562,7 @@ def list_prompt_templates(repo_id: str, repo_type: Optional[str] = "model", toke
         >>> from hf_hub_prompts import list_prompt_templates
         >>> files = list_prompt_templates("MoritzLaurer/example_prompts")
         >>> files
-        ['code_teacher.yaml', 'translate.yaml']
+        ['code_teacher.yaml', 'translate.yaml', 'translate_jinja2.yaml']
 
     Note:
         This function simply returns all YAML file names in the repository.
