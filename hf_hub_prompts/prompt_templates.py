@@ -188,9 +188,6 @@ class BasePromptTemplate(ABC):
                     f"  Extra variables: {sorted(unexpected_vars)}"
                 )
 
-            if "prompt_url" in self.other_data:
-                error_parts.append(f"\nTemplate URL: {self.other_data['prompt_url']}")
-
             raise ValueError("\n".join(error_parts))
 
     def _validate_template_input_variables_equality(self) -> None:
@@ -218,9 +215,6 @@ class BasePromptTemplate(ABC):
                 str(self.template)[:100] + "..." if len(str(self.template)) > 100 else str(self.template)
             )
             error_parts.append(f"\nTemplate extract: {template_extract}")
-
-            if "prompt_url" in self.other_data:
-                error_parts.append(f"Template URL: {self.other_data['prompt_url']}")
 
             raise ValueError("\n".join(error_parts))
 
@@ -342,6 +336,19 @@ class BasePromptTemplate(ABC):
                 self.populator_type = "single_brace"
                 self.populator = SingleBracePopulator()
 
+    def __eq__(self, other: Any) -> bool:
+        """Defines when two prompt templates are considered equal."""
+        if not isinstance(other, BasePromptTemplate):
+            return False
+
+        return (
+            self.template == other.template
+            and self.input_variables == other.input_variables
+            and self.metadata == other.metadata
+            and self.other_data == other.other_data
+            and self.populator_type == other.populator_type
+        )
+
 
 class TextPromptTemplate(BasePromptTemplate):
     """A class representing a standard text prompt template.
@@ -382,10 +389,12 @@ class TextPromptTemplate(BasePromptTemplate):
 
         Or download the same text prompt template from the Hub:
         >>> from hf_hub_prompts import PromptTemplateLoader
-        >>> template = PromptTemplateLoader.from_hub(
+        >>> template_downloaded = PromptTemplateLoader.from_hub(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="translate.yaml"
         ... )
+        >>> template_downloaded == template
+        True
     """
 
     def __init__(
@@ -523,10 +532,12 @@ class ChatPromptTemplate(BasePromptTemplate):
 
         Or download the same chat prompt template from the Hub:
         >>> from hf_hub_prompts import PromptTemplateLoader
-        >>> template = PromptTemplateLoader.from_hub(
+        >>> template_downloaded = PromptTemplateLoader.from_hub(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="code_teacher.yaml"
         ... )
+        >>> template_downloaded == template
+        True
     """
 
     template: List[Dict[str, str]]

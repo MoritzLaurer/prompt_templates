@@ -206,15 +206,13 @@ class PromptTemplateLoader:
             ) from e
 
         # Add prompt URL to metadata
-        prompt_url = f"https://huggingface.co/{repo_id}/blob/main/{filename}"
         return cls._load_template_from_yaml(
-            prompt_file, prompt_url=prompt_url, populator=populator, jinja2_security_level=jinja2_security_level
+            prompt_file, populator=populator, jinja2_security_level=jinja2_security_level
         )
 
     @staticmethod
     def _load_template_from_yaml(
         prompt_file: Dict[str, Any],
-        prompt_url: Optional[str] = None,
         populator: Optional[PopulatorType] = None,
         jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
     ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
@@ -222,7 +220,6 @@ class PromptTemplateLoader:
 
         Args:
             prompt_file: Dictionary containing parsed YAML data
-            prompt_url: Optional URL to the template on the Hub
             populator: Optional template populator type
             jinja2_security_level: Security level for Jinja2 populator
 
@@ -263,8 +260,6 @@ class PromptTemplateLoader:
         input_variables = prompt_data.get("input_variables")
         metadata = prompt_data.get("metadata")
         other_data = {k: v for k, v in prompt_data.items() if k not in ["template", "metadata", "input_variables"]}
-        if prompt_url:
-            other_data["prompt_url"] = prompt_url
 
         # Determine template type and create appropriate instance
         if isinstance(template, list) and any(isinstance(item, dict) for item in template):
