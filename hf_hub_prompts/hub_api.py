@@ -43,7 +43,7 @@ class PromptTemplateLoader:
         Load a template from a local file:
         >>> template = PromptTemplateLoader.from_local("./tests/test_data/translate.yaml")
         >>> print(template)
-        TextPromptTemplate(template='Translate the following text to {{language}}:\n{{..., input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+        TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
         >>> template.template
         'Translate the following text to {language}:\\n{text}'
         >>> template.input_variables
@@ -75,7 +75,7 @@ class PromptTemplateLoader:
             >>> from hf_hub_prompts import PromptTemplateLoader
             >>> template = PromptTemplateLoader.from_local("./tests/test_data/translate.yaml")
             >>> print(template)
-            TextPromptTemplate(template='Translate the following text to {{language}}:\n{{..., input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
             >>> template.template
             'Translate the following text to {language}:\\n{text}'
             >>> template.input_variables
@@ -155,7 +155,7 @@ class PromptTemplateLoader:
             ...     filename="translate.yaml"
             ... )
             >>> print(template)
-            TextPromptTemplate(template='Translate the following text to {{language}}:\n{{..., input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
             >>> template.template
             'Translate the following text to {language}:\\n{text}'
             >>> template.input_variables

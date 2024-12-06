@@ -356,7 +356,7 @@ class TextPromptTemplate(BasePromptTemplate):
     Examples:
         Instantiate a text prompt template:
         >>> from hf_hub_prompts import TextPromptTemplate
-        >>> template_text = "Translate the following text to {{language}}:\n{{text}}"
+        >>> template_text = "Translate the following text to {{language}}:\\n{{text}}"
         >>> input_variables = ["language", "text"]
         >>> metadata = {
         ...     "name": "Simple Translator",
@@ -371,7 +371,8 @@ class TextPromptTemplate(BasePromptTemplate):
         ...     metadata=metadata
         ... )
         >>> print(template)
-        TextPromptTemplate(template='Translate the following text to {{language}}:\n{{text}}', input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A simple translation prompt for illustrating the standard prompt YAML format', 'tags': ['translation', 'multilinguality'], 'version': '0.0.1', 'author': 'Some Person'}, other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopulator object at 0x...>)
+        TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{text}}', input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A simple translation prompt for illustrating the standard prompt YAML format', 'tags': ['translation', 'multilinguality'], 'version': '0.0.1', 'author': 'Some Person'}, other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopulator object at 0x...>)
+
         >>> # Inspect template attributes
         >>> template.template
         'Translate the following text to {language}:\\n{text}'
@@ -379,6 +380,7 @@ class TextPromptTemplate(BasePromptTemplate):
         ['language', 'text']
         >>> template.metadata['name']
         'Simple Translator'
+
         >>> # Populate the template
         >>> prompt = prompt_template.populate_template(
         ...     language="French",
