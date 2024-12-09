@@ -300,6 +300,9 @@ class ToolLoader:
     Tools are expected to be single Python functions with Google-style docstrings that specify their
     functionality, inputs, outputs, and metadata.
 
+    Note:
+        The ToolLoader class and related functionalities for working with tools is still highly experimental.
+
     Examples:
         Load a tool from a local file:
         >>> tool = ToolLoader.from_local("./tests/test_data/get_stock_price.py")

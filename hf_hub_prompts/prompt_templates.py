@@ -107,7 +107,7 @@ class BasePromptTemplate(ABC):
         create_repo: bool = False,
         format: Optional[Literal["yaml", "json"]] = None,
     ) -> Any:
-        """Save the prompt template to the Hugging Face Hub.
+        """Save the prompt template to the Hugging Face Hub as a YAML or JSON file.
 
         Args:
             repo_id: The repository ID on the Hugging Face Hub (e.g., "username/repo-name")
@@ -146,7 +146,7 @@ class BasePromptTemplate(ABC):
             ...     #create_repo=True,  # if the repo does not exist, create it
             ...     #token="hf_..."
             ... )
-            'https://huggingface.co/your-username/example-prompts/blob/main/code_teacher_test.yaml'
+            'https://huggingface.co/MoritzLaurer/example_prompts_test/blob/main/code_teacher_test.yaml'
         """
 
         # Infer format from file extension if not provided
@@ -196,7 +196,7 @@ class BasePromptTemplate(ABC):
         )
 
     def save_to_local(self, path: Union[str, Path], format: Optional[Literal["yaml", "json"]] = None) -> None:
-        """Save the prompt template to a local file.
+        """Save the prompt template as a local YAML or JSON file.
 
         Args:
             path: Path where to save the file. Can be string or Path object
@@ -509,7 +509,6 @@ class BasePromptTemplate(ABC):
                 self.populator = SingleBracePopulator()
 
     def __eq__(self, other: Any) -> bool:
-        """Defines when two prompt templates are considered equal."""
         if not isinstance(other, BasePromptTemplate):
             return False
 
