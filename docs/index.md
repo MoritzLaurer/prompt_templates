@@ -39,8 +39,8 @@ pip install hf-hub-prompts
 >>> # 3. Inspect the template:
 >>> prompt_template.template
 [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
->>> # Check required input variables
->>> prompt_template.input_variables
+>>> # Check required template variables
+>>> prompt_template.template_variables
 ['concept', 'programming_language']
 
 >>> # 4. Populate the template with variables

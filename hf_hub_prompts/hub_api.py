@@ -34,7 +34,7 @@ class PromptTemplateLoader:
         ...     filename="code_teacher.yaml"
         ... )
         >>> print(template)
-        ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., input_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+        ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
         >>> template.template
         [{'role': 'system', 'content': 'You are a coding assistant...'}, ...]
         >>> template.metadata["name"]
@@ -43,10 +43,10 @@ class PromptTemplateLoader:
         Load a template from a local file:
         >>> template = PromptTemplateLoader.from_local("./tests/test_data/translate.yaml")
         >>> print(template)
-        TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+        TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
         >>> template.template
         'Translate the following text to {language}:\\n{text}'
-        >>> template.input_variables
+        >>> template.template_variables
         ['language', 'text']
     """
 
@@ -75,10 +75,10 @@ class PromptTemplateLoader:
             >>> from hf_hub_prompts import PromptTemplateLoader
             >>> template = PromptTemplateLoader.from_local("./tests/test_data/translate.yaml")
             >>> print(template)
-            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
             >>> template.template
             'Translate the following text to {language}:\\n{text}'
-            >>> template.input_variables
+            >>> template.template_variables
             ['language', 'text']
             >>> template.metadata['name']
             'Simple Translator'
@@ -86,10 +86,10 @@ class PromptTemplateLoader:
             Download a chat prompt template:
             >>> template = PromptTemplateLoader.from_local("./tests/test_data/code_teacher.yaml")
             >>> print(template)
-            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}], input_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}], template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
             >>> template.template
             [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
-            >>> template.input_variables
+            >>> template.template_variables
             ['concept', 'programming_language']
             >>> template.metadata['version']
             '0.0.1'
@@ -155,10 +155,10 @@ class PromptTemplateLoader:
             ...     filename="translate.yaml"
             ... )
             >>> print(template)
-            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., input_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
             >>> template.template
             'Translate the following text to {language}:\\n{text}'
-            >>> template.input_variables
+            >>> template.template_variables
             ['language', 'text']
             >>> template.metadata['name']
             'Simple Translator'
@@ -169,10 +169,10 @@ class PromptTemplateLoader:
             ...     filename="code_teacher.yaml"
             ... )
             >>> print(template)
-            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}], input_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., other_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}], template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
             >>> template.template
             [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
-            >>> template.input_variables
+            >>> template.template_variables
             ['concept', 'programming_language']
             >>> template.metadata['version']
             '0.0.1'
@@ -205,7 +205,6 @@ class PromptTemplateLoader:
                 f"Error details: {str(e)}"
             ) from e
 
-        # Add prompt URL to metadata
         return cls._load_template_from_yaml(
             prompt_file, populator=populator, jinja2_security_level=jinja2_security_level
         )
@@ -256,27 +255,34 @@ class PromptTemplateLoader:
         else:
             template = prompt_data["template"]
 
-        # Extract other fields
-        input_variables = prompt_data.get("input_variables")
+        # Extract fields
+        template_variables = prompt_data.get("template_variables")
         metadata = prompt_data.get("metadata")
-        other_data = {k: v for k, v in prompt_data.items() if k not in ["template", "metadata", "input_variables"]}
+        client_parameters = prompt_data.get("client_parameters")
+        custom_data = {
+            k: v
+            for k, v in prompt_data.items()
+            if k not in ["template", "template_variables", "metadata", "client_parameters"]
+        }
 
         # Determine template type and create appropriate instance
         if isinstance(template, list) and any(isinstance(item, dict) for item in template):
             return ChatPromptTemplate(
                 template=template,
-                input_variables=input_variables,
+                template_variables=template_variables,
                 metadata=metadata,
-                other_data=other_data,
+                client_parameters=client_parameters,
+                custom_data=custom_data,
                 populator=populator,
                 jinja2_security_level=jinja2_security_level,
             )
         elif isinstance(template, str):
             return TextPromptTemplate(
                 template=template,
-                input_variables=input_variables,
+                template_variables=template_variables,
                 metadata=metadata,
-                other_data=other_data,
+                client_parameters=client_parameters,
+                custom_data=custom_data,
                 populator=populator,
                 jinja2_security_level=jinja2_security_level,
             )

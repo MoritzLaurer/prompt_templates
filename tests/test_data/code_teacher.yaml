@@ -4,7 +4,7 @@ prompt:
       content: "You are a coding assistant who explains concepts clearly and provides short examples."
     - role: "user"
       content: "Explain what {{concept}} is in {{programming_language}}."
-  input_variables:
+  template_variables:
     - concept
     - programming_language
   metadata:

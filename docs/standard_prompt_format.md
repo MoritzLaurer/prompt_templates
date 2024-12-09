@@ -6,7 +6,7 @@ A prompt template YAML or JSON file must follow the following standardized struc
 
 - Top-level key (required): `prompt`. This top-level key signals to the parser that the content of the file is a prompt template.
 - Second-level key (required): `template`. This can be either a simple string, or a list of dictionaries following the OpenAI messages format. The messages format is recommended for use with LLM APIs or inference containers. Variable placeholders for populating the prompt template string are denoted with double curly brackets {{...}}.
-- Second-level keys (optional): (1) `input_variables`: an optional list of variables for populating the prompt template. This is also used for input validation; (2) `metadata`: Other information, such as the source, date, author etc.; (3) Any other key of relevance, such as `client_settings` with parameters for reproducibility with a specific inference client, or `metrics` form evaluations on specific datasets.
+- Second-level keys (optional): (1) `template_variables`: a list of variables for populating the prompt template. This is used for input validation and to make the required variables for long templates easily accessible; (2) `metadata`: information about the template such as the source, date, author etc.; (3) `client_parameters`: parameters for the inference client (e.g. temperature, model).
 
 Example prompt template following the standard in YAML: 
 ```yaml
@@ -16,7 +16,7 @@ prompt:
       content: "You are a coding assistant who explains concepts clearly and provides short examples."
     - role: "user"
       content: "Explain what {{concept}} is in {{programming_language}}."
-  input_variables:
+  template_variables:
     - concept
     - programming_language
   metadata:
@@ -29,7 +29,7 @@ prompt:
     author: "Karl Marx"
 ```
 
-**Naming convention:** We call a file a *"prompt template"*, when it has placeholders ({{...}}) for dynamically populating the template similr to an f-string. This makes files more useful and reusable by others for different use-cases. Once the placeholders in the template are populated with specific input variables, we call it a *"prompt"*. 
+**Naming convention:** We call a file a *"prompt template"*, when it has placeholders ({{...}}) for dynamically populating the template similr to an f-string. This makes files more useful and reusable by others for different use-cases. Once the placeholders in the template are populated with specific variables, we call it a *"prompt"*. 
 
 The following example illustrates how the prompt template becomes a prompt. 
 
@@ -41,13 +41,13 @@ The following example illustrates how the prompt template becomes a prompt.
 ...     filename="code_teacher.yaml"
 ... )
 
->>> # 2. Inspect the template and it's input variables:
+>>> # 2. Inspect the template and it's variables:
 >>> prompt_template.template
 [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
->>> prompt_template.input_variables
+>>> prompt_template.template_variables
 ['concept', 'programming_language']
 
->>> # 3. Populate the template with its input variables
+>>> # 3. Populate the template with its variables
 >>> prompt = prompt_template.populate_template(
 ...     concept="list comprehension",
 ...     programming_language="Python"
@@ -120,10 +120,10 @@ prompt_template_langchain = prompt_template.to_langchain_template()
 
 
 ### Existing prompt template repos:
-- [LangChain Hub](https://smith.langchain.com/hub) for prompts (main hub is proprietary. See the old public oss [repo](https://github.com/hwchase17/langchain-hub), using JSON or YAML, with {...} for input variables)
+- [LangChain Hub](https://smith.langchain.com/hub) for prompts (main hub is proprietary. See the old public oss [repo](https://github.com/hwchase17/langchain-hub), using JSON or YAML, with {...} for template variables)
 - [LangGraph Templates](https://blog.langchain.dev/launching-langgraph-templates/) (underlying data structure unclear, does not seem to have a collaborative way of sharing templates)
 - [LlamaHub](https://llamahub.ai/) (seems to use GitHub as backend)
-- [Deepset Prompt Hub](https://github.com/deepset-ai/prompthub) (seems not maintained anymore, used YAML with {...} for input variables)
-- distilabel [templates](https://github.com/argilla-io/distilabel/tree/main/src/distilabel/steps/tasks/templates) and [tasks](https://distilabel.argilla.io/latest/components-gallery/tasks/) ([source](https://github.com/argilla-io/distilabel/tree/main/src/distilabel/steps/tasks)) (using pure jinja2 with {{ ... }} for input variables)
-- [Langfuse](https://langfuse.com/docs/prompts/get-started), see also [example here](https://langfuse.com/guides/cookbook/prompt_management_langchain) (no public prompt repo, using JSON internally with {{...}} for input variables)
-- [Promptify](https://github.com/promptslab/Promptify/tree/27a53fa8e8f2a4d90f887d06ece65a44466f873a/promptify/prompts) (not maintained anymore, used jinja1 and {{ ... }} for input variables)
+- [Deepset Prompt Hub](https://github.com/deepset-ai/prompthub) (seems not maintained anymore, used YAML with {...} for template variables)
+- distilabel [templates](https://github.com/argilla-io/distilabel/tree/main/src/distilabel/steps/tasks/templates) and [tasks](https://distilabel.argilla.io/latest/components-gallery/tasks/) ([source](https://github.com/argilla-io/distilabel/tree/main/src/distilabel/steps/tasks)) (using pure jinja2 with {{ ... }} for template variables)
+- [Langfuse](https://langfuse.com/docs/prompts/get-started), see also [example here](https://langfuse.com/guides/cookbook/prompt_management_langchain) (no public prompt repo, using JSON internally with {{...}} for template variables)
+- [Promptify](https://github.com/promptslab/Promptify/tree/27a53fa8e8f2a4d90f887d06ece65a44466f873a/promptify/prompts) (not maintained anymore, used jinja1 and {{ ... }} for template variables)

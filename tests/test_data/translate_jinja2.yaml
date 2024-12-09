@@ -15,11 +15,11 @@ prompt:
         {% else %}
         - Provide a free translation that is natural, idiomatic, and fluent in the target language
         {% endif %}
-  input_variables:
+  template_variables:
     - languages  # str e.g. "German, French, Chinese"
     - few_shot_examples  # List[Dict[str, str]] e.g. [{"source_lang": "English", "target_lang": "German", "source_text": "Hello", "target_text": "Hallo"}]
     - strictly_faithful_translation  # bool
-  example_inputs:
+  template_variables_example:
     languages: "German, French, Chinese"
     few_shot_examples:
       - source_lang: "English"
