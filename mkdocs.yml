@@ -4,6 +4,19 @@ site_url: https://moritzlaurer.github.io/hf_hub_prompts/
 repo_url: https://github.com/MoritzLaurer/hf_hub_prompts
 repo_name: moritzlaurer/hf_hub_prompts
 
+nav:
+  - Home: 
+    - Overview: index.md
+    - HF Hub Repo Types: repo_types_examples.md
+    - Standard Prompt Format: standard_prompt_format.md
+    - Tools: standard_tool_format.md
+    - Agents: agents.md
+  - API Reference:
+    - Downloading prompts and tools: reference/loaders.md
+    - Prompt templates: reference/prompt_templates.md
+    - Populated prompt: reference/populated_prompt.md
+    - Tools: reference/tools.md
+
 theme:
   name: material
   features:
@@ -16,6 +29,7 @@ theme:
     - content.tabs.link
     - content.code.annotation
     - content.code.copy
+    #- content.code.strip_repl_prompts  # feature does not exist?
     - navigation.footer
     - navigation.instant
     - navigation.tracking
@@ -44,6 +58,7 @@ theme:
   icon:
     repo: fontawesome/brands/github
 
+
 extra_css:
   - stylesheets/extra.css
 
@@ -54,8 +69,16 @@ extra:
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/hf-hub-prompts/
 
+markdown_extensions:
+  - pymdownx.highlight:
+      use_pygments: true
+      anchor_linenums: true  
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+
 plugins:
   - search
+  - autorefs
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -70,32 +93,7 @@ plugins:
             separate_signature: true
             filters: ["!^_[^_]"]
             docstring_section_style: table
+            render_plugin: "autorefs"
 
-markdown_extensions:
-  - pymdownx.highlight:
-      anchor_linenums: true
-      line_spans: __span
-      pygments_lang_class: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - admonition
-  - pymdownx.details
-  - pymdownx.superfences
-  - pymdownx.tabbed:
-      alternate_style: true
-  - tables
-  - attr_list
-  - md_in_html
-
-nav:
-  - Home: 
-    - Overview: index.md
-    - HF Hub Repo Types: repo_types_examples.md
-    - Standard Prompt Format: standard_prompt_format.md
-    - Tools: standard_tool_format.md
-    - Agents: agents.md
-  - API Reference:
-    - Downloading prompts and tools: reference/loaders.md
-    - Prompt templates: reference/prompt_templates.md
-    - Populated prompt: reference/populated_prompt.md
-    - Tools: reference/tools.md
+extra_javascript:
+  - javascripts/strip_repl.js
