@@ -1,0 +1,20 @@
+prompt:
+  template:
+  - role: system
+    content: You are a coding assistant who explains concepts clearly and provides
+      short examples.
+  - role: user
+    content: Explain what {{concept}} is in {{programming_language}}.
+  template_variables:
+  - concept
+  - programming_language
+  metadata:
+    name: Code Teacher
+    description: A simple chat prompt for explaining programming concepts with examples
+    tags:
+    - programming
+    - education
+    version: 0.0.1
+    author: My Awesome Company
+  client_parameters: {}
+  custom_data: {}

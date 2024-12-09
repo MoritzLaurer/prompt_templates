@@ -2,10 +2,12 @@ import json
 import logging
 import re
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Match, Optional, Set, Tuple, Union
 
 import jinja2
 import yaml
+from huggingface_hub import HfApi
 from jinja2 import Environment, meta
 
 from .constants import Jinja2SecurityLevel, PopulatorType
@@ -94,6 +96,169 @@ class BasePromptTemplate(ABC):
             PopulatedPrompt: A PopulatedPrompt object containing the populated content.
         """
         pass
+
+    def save_to_hub(
+        self,
+        repo_id: str,
+        filename: str,
+        repo_type: str = "model",
+        token: Optional[str] = None,
+        commit_message: Optional[str] = None,
+        create_repo: bool = False,
+        format: Optional[Literal["yaml", "json"]] = None,
+    ) -> Any:
+        """Save the prompt template to the Hugging Face Hub.
+
+        Args:
+            repo_id: The repository ID on the Hugging Face Hub (e.g., "username/repo-name")
+            filename: Name of the file to save (e.g., "prompt.yaml" or "prompt.json")
+            repo_type: Type of repository ("model", "dataset", or "space"). Defaults to "model"
+            token: Hugging Face API token. If None, will use token from environment
+            commit_message: Custom commit message. If None, uses default message
+            create_repo: Whether to create the repository if it doesn't exist. Defaults to False
+            format: Output format ("yaml" or "json"). If None, inferred from filename extension
+
+        Returns:
+            str: URL of the uploaded file on the Hugging Face Hub
+
+        Examples:
+            >>> from hf_hub_prompts import ChatPromptTemplate
+            >>> messages_template = [
+            ...     {"role": "system", "content": "You are a coding assistant who explains concepts clearly and provides short examples."},
+            ...     {"role": "user", "content": "Explain what {{concept}} is in {{programming_language}}."}
+            ... ]
+            >>> template_variables = ["concept", "programming_language"]
+            >>> metadata = {
+            ...     "name": "Code Teacher",
+            ...     "description": "A simple chat prompt for explaining programming concepts with examples",
+            ...     "tags": ["programming", "education"],
+            ...     "version": "0.0.1",
+            ...     "author": "My Awesome Company"
+            ... }
+            >>> prompt_template = ChatPromptTemplate(
+            ...     template=messages_template,
+            ...     template_variables=template_variables,
+            ...     metadata=metadata,
+            ... )
+            >>> prompt_template.save_to_hub(
+            ...     repo_id="MoritzLaurer/example_prompts_test",
+            ...     filename="code_teacher_test.yaml",
+            ...     #create_repo=True,  # if the repo does not exist, create it
+            ...     #token="hf_..."
+            ... )
+            'https://huggingface.co/your-username/example-prompts/blob/main/code_teacher_test.yaml'
+        """
+
+        # Infer format from file extension if not provided
+        if format is None:
+            if filename.endswith(".yaml") or filename.endswith(".yml"):
+                format = "yaml"
+            elif filename.endswith(".json"):
+                format = "json"
+            else:
+                format = "yaml"  # default if no extension
+                filename += ".yaml"
+
+        # Validate if format was explicitly provided
+        elif not filename.endswith(f".{format}"):
+            raise ValueError(
+                f"File extension '{filename}' does not match the format '{format}'. "
+                f"Expected extension: '.{format}'."
+            )
+
+        # Convert template to the specified format
+        content = {
+            "prompt": {
+                "template": self.template,
+                "template_variables": self.template_variables,
+                "metadata": self.metadata,
+                "client_parameters": self.client_parameters,
+                "custom_data": self.custom_data,
+            }
+        }
+
+        if format == "yaml":
+            file_content = yaml.dump(content, sort_keys=False)
+        else:
+            file_content = json.dumps(content, indent=2)
+
+        # Upload to Hub
+        api = HfApi(token=token)
+        if create_repo:
+            api.create_repo(repo_id=repo_id, repo_type=repo_type, exist_ok=True)
+
+        return api.upload_file(
+            path_or_fileobj=file_content.encode(),
+            path_in_repo=filename,
+            repo_id=repo_id,
+            repo_type=repo_type,
+            commit_message=commit_message or f"Upload prompt template {filename}",
+        )
+
+    def save_to_local(self, path: Union[str, Path], format: Optional[Literal["yaml", "json"]] = None) -> None:
+        """Save the prompt template to a local file.
+
+        Args:
+            path: Path where to save the file. Can be string or Path object
+            format: Output format ("yaml" or "json"). If None, inferred from file extension.
+                If no extension is provided, defaults to "yaml"
+
+        Examples:
+            >>> from hf_hub_prompts import ChatPromptTemplate
+            >>> messages_template = [
+            ...     {"role": "system", "content": "You are a coding assistant who explains concepts clearly and provides short examples."},
+            ...     {"role": "user", "content": "Explain what {{concept}} is in {{programming_language}}."}
+            ... ]
+            >>> template_variables = ["concept", "programming_language"]
+            >>> metadata = {
+            ...     "name": "Code Teacher",
+            ...     "description": "A simple chat prompt for explaining programming concepts with examples",
+            ...     "tags": ["programming", "education"],
+            ...     "version": "0.0.1",
+            ...     "author": "My Awesome Company"
+            ... }
+            >>> prompt_template = ChatPromptTemplate(
+            ...     template=messages_template,
+            ...     template_variables=template_variables,
+            ...     metadata=metadata,
+            ... )
+            >>> prompt_template.save_to_local("code_teacher_test.yaml")
+        """
+
+        path = Path(path)
+        content = {
+            "prompt": {
+                "template": self.template,
+                "template_variables": self.template_variables,
+                "metadata": self.metadata,
+                "client_parameters": self.client_parameters,
+                "custom_data": self.custom_data,
+            }
+        }
+
+        # Infer format from file extension if not provided
+        if format is None:
+            if path.suffix == ".yaml" or path.suffix == ".yml":
+                format = "yaml"
+            elif path.suffix == ".json":
+                format = "json"
+            else:
+                format = "yaml"  # default if no extension
+                path = path.with_suffix(".yaml")
+
+        # Validate if format was explicitly provided
+        elif path.suffix and path.suffix != f".{format}":
+            raise ValueError(
+                f"File extension '{path.suffix}' does not match the format '{format}'. "
+                f"Expected extension: '.{format}'."
+            )
+
+        if format == "yaml":
+            with open(path, "w") as f:
+                yaml.dump(content, f, sort_keys=False)
+        else:
+            with open(path, "w") as f:
+                json.dump(content, f, indent=2)
 
     def display(self, format: Literal["json", "yaml"] = "json") -> None:
         """Display the prompt configuration in the specified format.
@@ -373,20 +538,20 @@ class TextPromptTemplate(BasePromptTemplate):
         ...     "version": "0.0.1",
         ...     "author": "Some Person"
         }
-        >>> template = TextPromptTemplate(
+        >>> prompt_template = TextPromptTemplate(
         ...     template=template_text,
         ...     template_variables=template_variables,
         ...     metadata=metadata
         ... )
-        >>> print(template)
+        >>> print(prompt_template)
         TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{text}}', template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A simple translation prompt for illustrating the standard prompt YAML format', 'tags': ['translation', 'multilinguality'], 'version': '0.0.1', 'author': 'Some Person'}, custom_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopulator object at 0x...>)
 
         >>> # Inspect template attributes
-        >>> template.template
+        >>> prompt_template.template
         'Translate the following text to {language}:\\n{text}'
-        >>> template.template_variables
+        >>> prompt_template.template_variables
         ['language', 'text']
-        >>> template.metadata['name']
+        >>> prompt_template.metadata['name']
         'Simple Translator'
 
         >>> # Populate the template
@@ -399,11 +564,11 @@ class TextPromptTemplate(BasePromptTemplate):
 
         Or download the same text prompt template from the Hub:
         >>> from hf_hub_prompts import PromptTemplateLoader
-        >>> template_downloaded = PromptTemplateLoader.from_hub(
+        >>> prompt_template_downloaded = PromptTemplateLoader.from_hub(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="translate.yaml"
         ... )
-        >>> template_downloaded == template
+        >>> prompt_template_downloaded == prompt_template
         True
     """
 
@@ -432,13 +597,13 @@ class TextPromptTemplate(BasePromptTemplate):
 
         Examples:
             >>> from hf_hub_prompts import PromptTemplateLoader
-            >>> template = PromptTemplateLoader.from_hub(
+            >>> prompt_template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
-            >>> template.template
+            >>> prompt_template.template
             'Translate the following text to {language}:\\n{text}'
-            >>> prompt = template.populate_template(
+            >>> prompt = prompt_template.populate_template(
             ...     language="French",
             ...     text="Hello world!"
             ... )
@@ -460,11 +625,11 @@ class TextPromptTemplate(BasePromptTemplate):
 
         Examples:
             >>> from hf_hub_prompts import PromptTemplateLoader
-            >>> template = PromptTemplateLoader.from_hub(
+            >>> prompt_template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
-            >>> lc_template = template.to_langchain_template()
+            >>> lc_template = prompt_template.to_langchain_template()
             >>> # test equivalence
             >>> from langchain_core.prompts import PromptTemplate as LC_PromptTemplate
             >>> isinstance(lc_template, LC_PromptTemplate)
@@ -506,21 +671,21 @@ class ChatPromptTemplate(BasePromptTemplate):
         ...     "version": "0.0.1",
         ...     "author": "My Awesome Company"
         ... }
-        >>> template = ChatPromptTemplate(
+        >>> prompt_template = ChatPromptTemplate(
         ...     template=template_messages,
         ...     template_variables=template_variables,
         ...     metadata=metadata
         ... )
-        >>> print(template)
+        >>> print(prompt_template)
         ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
         >>> # Inspect template attributes
-        >>> template.template
+        >>> prompt_template.template
         [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
-        >>> template.template_variables
+        >>> prompt_template.template_variables
         ['concept', 'programming_language']
 
         >>> # Populate the template
-        >>> messages = template.populate_template(
+        >>> messages = prompt_template.populate_template(
         ...     concept="list comprehension",
         ...     programming_language="Python"
         ... )
@@ -544,11 +709,11 @@ class ChatPromptTemplate(BasePromptTemplate):
 
         Or download the same chat prompt template from the Hub:
         >>> from hf_hub_prompts import PromptTemplateLoader
-        >>> template_downloaded = PromptTemplateLoader.from_hub(
+        >>> prompt_template_downloaded = PromptTemplateLoader.from_hub(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="code_teacher.yaml"
         ... )
-        >>> template_downloaded == template
+        >>> prompt_template_downloaded == prompt_template
         True
     """
 
@@ -579,11 +744,11 @@ class ChatPromptTemplate(BasePromptTemplate):
 
         Examples:
             >>> from hf_hub_prompts import PromptTemplateLoader
-            >>> template = PromptTemplateLoader.from_hub(
+            >>> prompt_template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
-            >>> messages = template.populate_template(
+            >>> messages = prompt_template.populate_template(
             ...     concept="list comprehension",
             ...     programming_language="Python"
             ... )
@@ -614,12 +779,12 @@ class ChatPromptTemplate(BasePromptTemplate):
 
         Examples:
             >>> from hf_hub_prompts import PromptTemplateLoader
-            >>> template = PromptTemplateLoader.from_hub(
+            >>> prompt_template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
             >>> # Format for OpenAI (default)
-            >>> messages = template.create_messages(
+            >>> messages = prompt_template.create_messages(
             ...     concept="list comprehension",
             ...     programming_language="Python"
             ... )
@@ -658,11 +823,11 @@ class ChatPromptTemplate(BasePromptTemplate):
 
         Examples:
             >>> from hf_hub_prompts import PromptTemplateLoader
-            >>> template = PromptTemplateLoader.from_hub(
+            >>> prompt_template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
-            >>> lc_template = template.to_langchain_template()
+            >>> lc_template = prompt_template.to_langchain_template()
             >>> # test equivalence
             >>> from langchain_core.prompts import ChatPromptTemplate as LC_ChatPromptTemplate
             >>> isinstance(lc_template, LC_ChatPromptTemplate)
