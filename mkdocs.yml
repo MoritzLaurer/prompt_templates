@@ -29,7 +29,7 @@ theme:
     - content.tabs.link
     - content.code.annotation
     - content.code.copy
-    #- content.code.strip_repl_prompts  # feature does not exist?
+    - content.code.strip_repl_prompts  # feature does not exist?
     - navigation.footer
     - navigation.instant
     - navigation.tracking

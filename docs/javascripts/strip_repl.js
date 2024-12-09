@@ -1,38 +1,54 @@
-document.addEventListener("DOMContentLoaded", function() {
-    document.querySelectorAll('.md-clipboard').forEach(button => {
-        const originalClick = button.onclick;
+// Create a function to handle the copy operation
+function handleCopy(button) {
+    const codeBlock = button.closest('pre');
+    if (!codeBlock) return;
+
+    const code = codeBlock.querySelector('code');
+    if (!code) return;
+
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Get and process the text
+        let text = code.textContent;
+        let lines = text.split('\n');
         
-        button.onclick = function() {
-            const codeBlock = this.closest('pre');
-            if (codeBlock) {
-                const code = codeBlock.querySelector('code');
-                if (code) {
-                    // Get the text content
-                    let text = code.textContent;
-                    
-                    // Split into lines
-                    let lines = text.split('\n');
-                    
-                    // Keep only lines that start with >>> or ...
-                    lines = lines.filter(line => {
-                        const trimmed = line.trim();
-                        return trimmed.startsWith('>>>') || trimmed.startsWith('...');
-                    });
-                    
-                    // Remove the prompts
-                    lines = lines.map(line => {
-                        return line.replace(/^[ \t]*(>>>|\.\.\.) /, '');
-                    });
-                    
-                    // Join back into text
-                    text = lines.join('\n').trim();
-                    
-                    // Copy the modified text
-                    navigator.clipboard.writeText(text);
-                    return false; // Prevent default copy behavior
+        // Remove REPL prompts while keeping the actual code
+        lines = lines
+            .map(line => line.replace(/^[\t ]*(>>>|\.\.\.) ?/, ''))
+            .filter(line => line.length > 0);
+        
+        // Join lines and copy to clipboard
+        const cleanedText = lines.join('\n').trim();
+        navigator.clipboard.writeText(cleanedText);
+        
+        return false;
+    }, { capture: true });  // Use capture to ensure our handler runs first
+}
+
+// Set up observer to watch for new copy buttons
+const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+        if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach(node => {
+                if (node.nodeType === 1) {  // Element node
+                    // Handle newly added copy buttons
+                    node.querySelectorAll('.md-clipboard').forEach(handleCopy);
                 }
-            }
-            return originalClick.call(this);
-        };
+            });
+        }
+    }
+});
+
+// Initial setup
+document.addEventListener('DOMContentLoaded', () => {
+    // Handle existing copy buttons
+    document.querySelectorAll('.md-clipboard').forEach(handleCopy);
+    
+    // Start observing the document for new copy buttons
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
     });
 }); 
