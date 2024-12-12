@@ -2,6 +2,6 @@
 
 This section documents the classes and functions for downloading prompt templates and tools from the Hugging Face Hub.
 
-::: hf_hub_prompts.loaders
+::: prompt_templates.loaders
     options:
         show_if_no_docstring: false

@@ -28,13 +28,13 @@ class PromptTemplateLoader:
 
     Examples:
         Load a template from the Hub:
-        >>> from hf_hub_prompts import PromptTemplateLoader
+        >>> from prompt_templates import PromptTemplateLoader
         >>> prompt_template = PromptTemplateLoader.from_hub(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="code_teacher.yaml"
         ... )
         >>> print(prompt_template)
-        ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+        ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopula...)
         >>> prompt_template.template
         [{'role': 'system', 'content': 'You are a coding assistant...'}, ...]
         >>> prompt_template.metadata["name"]
@@ -43,7 +43,7 @@ class PromptTemplateLoader:
         Load a template from a local file:
         >>> prompt_template = PromptTemplateLoader.from_local("./tests/test_data/translate.yaml")
         >>> print(template)
-        TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+        TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopula...)
         >>> prompt_template.template
         'Translate the following text to {language}:\\n{text}'
         >>> prompt_template.template_variables
@@ -72,10 +72,10 @@ class PromptTemplateLoader:
 
         Examples:
             Download a text prompt template:
-            >>> from hf_hub_prompts import PromptTemplateLoader
+            >>> from prompt_templates import PromptTemplateLoader
             >>> prompt_template = PromptTemplateLoader.from_local("./tests/test_data/translate.yaml")
             >>> print(prompt_template)
-            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopula...)
             >>> prompt_template.template
             'Translate the following text to {language}:\\n{text}'
             >>> prompt_template.template_variables
@@ -86,7 +86,7 @@ class PromptTemplateLoader:
             Download a chat prompt template:
             >>> prompt_template = PromptTemplateLoader.from_local("./tests/test_data/code_teacher.yaml")
             >>> print(prompt_template)
-            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}], template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}], template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopula...)
             >>> prompt_template.template
             [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
             >>> prompt_template.template_variables
@@ -149,13 +149,13 @@ class PromptTemplateLoader:
 
         Examples:
             Download a text prompt template:
-            >>> from hf_hub_prompts import PromptTemplateLoader
+            >>> from prompt_templates import PromptTemplateLoader
             >>> prompt_template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
             >>> print(prompt_template)
-            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopula...)
             >>> prompt_template.template
             'Translate the following text to {language}:\\n{text}'
             >>> prompt_template.template_variables
@@ -169,7 +169,7 @@ class PromptTemplateLoader:
             ...     filename="code_teacher.yaml"
             ... )
             >>> print(prompt_template)
-            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}], template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator_type='double_brace', populator=<hf_hub_prompts.prompt_templates.DoubleBracePopula...)
+            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}], template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopula...)
             >>> prompt_template.template
             [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
             >>> prompt_template.template_variables
@@ -563,7 +563,7 @@ def list_prompt_templates(repo_id: str, repo_type: Optional[str] = "model", toke
 
     Examples:
         List all prompt templates in a repository:
-        >>> from hf_hub_prompts import list_prompt_templates
+        >>> from prompt_templates import list_prompt_templates
         >>> files = list_prompt_templates("MoritzLaurer/example_prompts")
         >>> files
         ['code_teacher.yaml', 'translate.yaml', 'translate_jinja2.yaml']
@@ -596,7 +596,7 @@ def list_tools(repo_id: str, repo_type: str = "model", token: Optional[str] = No
 
     Examples:
         List all tools in a repository:
-        >>> from hf_hub_prompts import list_tools
+        >>> from prompt_templates import list_tools
         >>> files = list_tools("MoritzLaurer/example_tools")
         >>> files
         ['get_stock_price.py']

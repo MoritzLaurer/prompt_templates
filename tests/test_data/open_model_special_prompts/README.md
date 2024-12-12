@@ -6,24 +6,24 @@ tags:
 
 ## Sharing special prompts of open-weight models
 
-This repo illustrates how you can use the `hf_hub_prompts` library to load prompts from YAML files in open-weight model repositories.
+This repo illustrates how you can use the `prompt_templates` library to load prompts from YAML files in open-weight model repositories.
 Several open-weight models have been tuned on specific tasks with specific prompts. 
 For example, the InternVL2 vision language models are one of the very few VLMs that have been trained for zeroshot bounding box prediction for any object.
 To elicit this capability, users need to use this special prompt: `Please provide the bounding box coordinate of the region this sentence describes: <ref>{region_to_detect}</ref>'`
 
 These these kinds of task-specific special prompts are currently unsystematically reported in model cards, github repos, .txt files etc. 
 
-The hf_hub_prompts library standardises the sharing of prompts in YAML files.
+The prompt_templates library standardises the sharing of prompts in YAML files.
 I recommend sharing these these special prompts directly in the model repository of the respective. 
 
 Below is an example for the InternVL2 model. 
 
-Note that this model card is not actively maintained and the latest documentation for `hf_hub_prompts` is available at https://github.com/MoritzLaurer/hf_hub_prompts 
+Note that this model card is not actively maintained and the latest documentation for `prompt_templates` is available at https://github.com/MoritzLaurer/prompt_templates 
 
 #### Prompt for extracting bounding boxes of specific objects of interest with InternVL2
 ```py
-#!pip install hf_hub_prompts
-from hf_hub_prompts import PromptTemplateLoader
+#!pip install prompt_templates
+from prompt_templates import PromptTemplateLoader
 
 # download image prompt template
 prompt_template = PromptTemplateLoader.from_hub(repo_id="MoritzLaurer/open_models_special_prompts", filename="internvl2-bbox-prompt.yaml")

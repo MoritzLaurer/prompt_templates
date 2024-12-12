@@ -26,7 +26,7 @@ class PopulatedPrompt:
         - For dict-based content: `prompt[key]`
 
     Examples:
-        >>> from hf_hub_prompts import PromptTemplateLoader
+        >>> from prompt_templates import PromptTemplateLoader
         >>> prompt_template = PromptTemplateLoader.from_hub(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="code_teacher.yaml"
@@ -103,7 +103,7 @@ class PopulatedPrompt:
 
         Examples:
             Format chat messages for different LLM clients:
-            >>> from hf_hub_prompts import PromptTemplateLoader
+            >>> from prompt_templates import PromptTemplateLoader
             >>> prompt_template = PromptTemplateLoader.from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"

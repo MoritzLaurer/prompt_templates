@@ -42,7 +42,7 @@ class Tool:
 
         Examples:
             Note that the output here always depends on the specific tool function you load.
-            >>> from hf_hub_prompts import ToolLoader
+            >>> from prompt_templates import ToolLoader
             >>> tool = ToolLoader.from_hub(repo_id="MoritzLaurer/example_tools", filename="get_stock_price.py")
             >>> result = tool(ticker="AAPL", days="5d")
             >>> # This specific tool always returns a dictionary with the following keys
@@ -63,7 +63,7 @@ class Tool:
 
         Examples:
             Check if there are any uninstalled dependencies:
-            >>> from hf_hub_prompts import ToolLoader
+            >>> from prompt_templates import ToolLoader
             >>> tool = ToolLoader.from_hub(repo_id="MoritzLaurer/example_tools", filename="get_stock_price.py")
             >>> uninstalled = tool.return_uninstalled_dependencies()
             >>> if uninstalled:

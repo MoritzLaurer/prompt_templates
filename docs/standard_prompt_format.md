@@ -35,7 +35,7 @@ The following example illustrates how the prompt template becomes a prompt.
 
 ```python
 >>> # 1. Download a prompt template:
->>> from hf_hub_prompts import PromptTemplateLoader
+>>> from prompt_templates import PromptTemplateLoader
 >>> prompt_template = PromptTemplateLoader.from_hub(
 ...     repo_id="MoritzLaurer/example_prompts",
 ...     filename="code_teacher.yaml"
@@ -93,13 +93,13 @@ The following example illustrates how the prompt template becomes a prompt.
 ### Compatibility with LangChain
 LangChain is a great library for creating interoperability between different LLM clients.
 This library is inspired by LangChain's [PromptTemplate](https://python.langchain.com/api_reference/core/prompts/langchain_core.prompts.prompt.PromptTemplate.html) 
-and [ChatPromptTemplate](https://python.langchain.com/api_reference/core/prompts/langchain_core.prompts.chat.ChatPromptTemplate.html) classes. One difference is that the LangChain ChatPromptTemplate expects a "messages" key instead of a "template" key for the prompt template in the messages format. This HF library uses the "template" key both for HF [TextPromptTemplate][hf_hub_prompts.prompt_templates.TextPromptTemplate] and for HF [ChatPromptTemplate][hf_hub_prompts.prompt_templates.ChatPromptTemplate] for simplicity. If you still load a YAML/JSON file with a "messages" key, it will be automatically renamed to "template". You can also always convert a HF PromptTemplate to a LangChain template with [.to_langchain_template()][hf_hub_prompts.prompt_templates.ChatPromptTemplate.to_langchain_template]. The objective of this library is not to reproduce the full functionality of a library like LangChain, but to enable the community to share prompts on the HF Hub and load and reuse them with any of their favourite libraries. 
+and [ChatPromptTemplate](https://python.langchain.com/api_reference/core/prompts/langchain_core.prompts.chat.ChatPromptTemplate.html) classes. One difference is that the LangChain ChatPromptTemplate expects a "messages" key instead of a "template" key for the prompt template in the messages format. This HF library uses the "template" key both for HF [TextPromptTemplate][prompt_templates.prompt_templates.TextPromptTemplate] and for HF [ChatPromptTemplate][prompt_templates.prompt_templates.ChatPromptTemplate] for simplicity. If you still load a YAML/JSON file with a "messages" key, it will be automatically renamed to "template". You can also always convert a HF PromptTemplate to a LangChain template with [.to_langchain_template()][prompt_templates.prompt_templates.ChatPromptTemplate.to_langchain_template]. The objective of this library is not to reproduce the full functionality of a library like LangChain, but to enable the community to share prompts on the HF Hub and load and reuse them with any of their favourite libraries. 
 
 
-A `PromptTemplate` from `hf_hub_prompts` can be easily converted to a langchain template: 
+A `PromptTemplate` from `prompt_templates` can be easily converted to a langchain template: 
 
 ```py
-from hf_hub_prompts import PromptTemplateLoader
+from prompt_templates import PromptTemplateLoader
 prompt_template = PromptTemplateLoader.from_hub(
     repo_id="MoritzLaurer/example_prompts",
     filename="code_teacher.yaml"

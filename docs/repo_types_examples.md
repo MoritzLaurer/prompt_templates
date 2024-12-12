@@ -23,7 +23,7 @@ This [example HF repository](https://huggingface.co/MoritzLaurer/closed_system_p
 contains leaked or released prompts from Anthropic and OpenAI. 
 
 ```python
-from hf_hub_prompts import list_prompt_templates
+from prompt_templates import list_prompt_templates
 list_prompt_templates(repo_id="MoritzLaurer/closed_system_prompts")
 # ['claude-3-5-artifacts-leak-210624.yaml', 'claude-3-5-sonnet-text-090924.yaml', 'claude-3-5-sonnet-text-image-090924.yaml', 'openai-metaprompt-audio.yaml', 'openai-metaprompt-text.yaml']
 ```
@@ -32,7 +32,7 @@ list_prompt_templates(repo_id="MoritzLaurer/closed_system_prompts")
 Here, we download the leaked prompt for Claude-3.5 Sonnet for creating Artifacts. 
 
 ```python
-from hf_hub_prompts import PromptTemplateLoader
+from prompt_templates import PromptTemplateLoader
 prompt_template = PromptTemplateLoader.from_hub(
     repo_id="MoritzLaurer/closed_system_prompts",
     filename="claude-3-5-artifacts-leak-210624.yaml"
@@ -83,7 +83,7 @@ response = client_anthropic.messages.create(
 The paper "JudgeBench: A Benchmark for Evaluating LLM-Based Judges" (<a href="https://arxiv.org/pdf/2410.12784">paper</a>) collects several prompts for using LLMs to evaluate unstructured LLM outputs. After copying them into a <a href="https://huggingface.co/MoritzLaurer/judgebench-prompts">HF Hub model repo</a> in the standardized YAML format, they can be directly loaded and populated.
 
 ```python
-from hf_hub_prompts import PromptTemplateLoader
+from prompt_templates import PromptTemplateLoader
 prompt_template = PromptTemplateLoader.from_hub(
   repo_id="MoritzLaurer/judgebench-prompts", 
   filename="vanilla-prompt.yaml"
@@ -99,7 +99,7 @@ The community has extracted system prompts from closed API providers like OpenAI
 
 
 ```python
-from hf_hub_prompts import list_prompt_templates, PromptTemplateLoader
+from prompt_templates import list_prompt_templates, PromptTemplateLoader
 list_prompt_templates(repo_id="MoritzLaurer/closed_system_prompts")
 # out: ['claude-3-5-artifacts-leak-210624.yaml', 'claude-3-5-sonnet-text-090924.yaml', 'claude-3-5-sonnet-text-image-090924.yaml', 'openai-metaprompt-audio.yaml', 'openai-metaprompt-text.yaml']
 
@@ -119,14 +119,14 @@ the VLM [Molmo](https://huggingface.co/collections/allenai/molmo-66f379e6fe3b8ef
 
 These prompt templates are currently either mentioned unsystematically in model cards or need to be tracked down on github or paper appendices by users. 
 
-`hf_hub_prompts` proposes to share these types of prompt templates in YAML or JSON files in the model repository together with the model weights. 
+`prompt_templates` proposes to share these types of prompt templates in YAML or JSON files in the model repository together with the model weights. 
 
 <details>
   <summary>1. Example: Sharing the <a href="https://huggingface.co/MoritzLaurer/open_models_special_prompts">InternVL2 special task prompt templates</a></summary>
 
 ```python
 # download image prompt template
-from hf_hub_prompts import PromptTemplateLoader
+from prompt_templates import PromptTemplateLoader
 prompt_template = PromptTemplateLoader.from_hub(
   repo_id="MoritzLaurer/open_models_special_prompts", 
   filename="internvl2-bbox-prompt.yaml"
@@ -191,7 +191,7 @@ See this <a href="https://huggingface.co/datasets/MoritzLaurer/dataset_prompts">
 
 
 ```python
-from hf_hub_prompts import PromptTemplateLoader
+from prompt_templates import PromptTemplateLoader
 import torch
 from transformers import pipeline
 

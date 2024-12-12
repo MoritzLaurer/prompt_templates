@@ -60,7 +60,7 @@
       "ignore"
     ],
     "sort": "ASC",
-    "template": "${{CHANGES}}\n\n## 📦 Full Changelog\n\nFor a complete list of changes, see the [full diff](https://github.com/MoritzLaurer/hf_hub_prompts/compare/${{FROM_TAG}}...${{TO_TAG}})",
+    "template": "${{CHANGES}}\n\n## 📦 Full Changelog\n\nFor a complete list of changes, see the [full diff](https://github.com/MoritzLaurer/prompt_templates/compare/${{FROM_TAG}}...${{TO_TAG}})",
     "commit_template": "- ${{SUBJECT}}",
     "empty_template": "No changes in this category"
 }
