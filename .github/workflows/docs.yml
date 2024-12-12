@@ -107,6 +107,9 @@ jobs:
           
       - name: Build and deploy documentation
         run: |
+          # Configure git to use the new repository URL
+          git remote set-url origin https://github.com/MoritzLaurer/prompt_templates.git
+          
           # Use poetry shell to ensure we're in the right environment
           poetry shell
           poetry run mkdocs gh-deploy --force
