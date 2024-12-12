@@ -92,8 +92,21 @@ jobs:
         run: |
           poetry config virtualenvs.create true
           poetry config virtualenvs.in-project true
-          poetry install --only docs
+          
+          # Debug: Show poetry version
+          poetry --version
+          
+          # Install with verbose output
+          poetry install --only docs -v
+          
+          # List all installed packages
+          poetry run pip list
+          
+          # Show poetry environment info
+          poetry env info
           
       - name: Build and deploy documentation
         run: |
+          # Use poetry shell to ensure we're in the right environment
+          poetry shell
           poetry run mkdocs gh-deploy --force
