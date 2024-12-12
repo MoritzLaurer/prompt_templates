@@ -50,11 +50,11 @@ jobs:
 
     - name: Type check with mypy
       continue-on-error: true  # Won't fail the PR
-      run: poetry run mypy hf_hub_prompts/
+      run: poetry run mypy prompt_templates/
 
     - name: Run tests with pytest
       continue-on-error: true  # Won't fail the PR
-      run: poetry run pytest --doctest-modules --cov=hf_hub_prompts --cov-report=xml
+      run: poetry run pytest --doctest-modules --cov=prompt_templates --cov-report=xml
 
     - name: Upload results to Codecov
       uses: codecov/codecov-action@v4

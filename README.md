@@ -1,12 +1,5 @@
-# HF Hub Prompts 
-Prompts have become a key artifact for researchers and practitioners working with AI. 
-There is, however, no standardized way of sharing prompts.
-Prompts are shared on the HF Hub in [.txt files](https://huggingface.co/HuggingFaceFW/fineweb-edu-classifier/blob/main/utils/prompt.txt),
-in [HF datasets](https://huggingface.co/datasets/fka/awesome-chatgpt-prompts),
-as strings in [model cards](https://huggingface.co/OpenGVLab/InternVL2-8B#grounding-benchmarks),
-or on GitHub as [python strings](https://github.com/huggingface/cosmopedia/tree/main/prompts), 
-in [JSON, YAML](https://github.com/hwchase17/langchain-hub/blob/master/prompts/README.md),
-or in [Jinja2](https://github.com/argilla-io/distilabel/tree/main/src/distilabel/steps/tasks/templates). 
+# Prompt Templates
+Prompt templates have become key artifacts for researchers and practitioners working with AI. There is, however, no standardized way of sharing prompt templates. Prompts and prompt templates are shared on the HF Hub in [.txt files](https://huggingface.co/HuggingFaceFW/fineweb-edu-classifier/blob/main/utils/prompt.txt), in [HF datasets](https://huggingface.co/datasets/fka/awesome-chatgpt-prompts), as strings in [model cards](https://huggingface.co/OpenGVLab/InternVL2-8B#grounding-benchmarks), or on GitHub as [python strings](https://github.com/huggingface/cosmopedia/tree/main/prompts) embedded in scripts, in [JSON, YAML](https://github.com/hwchase17/langchain-hub/blob/master/prompts/README.md), or in [Jinja2](https://github.com/argilla-io/distilabel/tree/main/src/distilabel/steps/tasks/templates) files. 
 
 
 

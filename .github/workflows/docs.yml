@@ -9,7 +9,7 @@ on:
       - '.github/workflows/docs.yml'  # This workflow file
       - 'pyproject.toml'        # For doc dependencies
       # Add any Python files that generate docs
-      - 'hf_hub_prompts/**/*.py'   # Source files (for docstrings)
+      - 'prompt_templates/**/*.py'   # Source files (for docstrings)
       
   # Optional: Allow manual triggers
   workflow_dispatch:

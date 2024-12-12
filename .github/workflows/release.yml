@@ -58,7 +58,7 @@ jobs:
           
       - name: Run tests
         run: |
-          poetry run pytest --verbose --cov=hf_hub_prompts --cov-report=term-missing --cov-report=xml
+          poetry run pytest --verbose --cov=prompt_templates --cov-report=term-missing --cov-report=xml
         continue-on-error: true
           
       # Only bump version if specifically requested
@@ -100,7 +100,7 @@ jobs:
           commitMode: true
           ignorePreReleases: false
           owner: "MoritzLaurer"
-          repo: "hf_hub_prompts"
+          repo: "prompt_templates"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
