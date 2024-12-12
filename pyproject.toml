@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "hf-hub-prompts"
-version = "0.0.7"
-description = "An experimental library for working with prompts on the Hugging Face Hub."
+name = "prompt-templates"
+version = "0.0.9"
+description = "A library for working with prompt templates locally or on the Hugging Face Hub."
 authors = ["MoritzLaurer <moritz@huggingface.co>"]
 license = "Appache-2.0"
 readme = "README.md"
@@ -43,7 +43,6 @@ mkdocs-autorefs = "^1.2.0"
 pytz = "^2024.2"
 
 [tool.poetry.group.dev.dependencies]
-# poetry add ipywidgets jupyter --group dev
 ipykernel = "^6.29.5"
 ipywidgets = "^8.1.5"
 jupyter = "^1.1.1"
@@ -104,7 +103,6 @@ exclude_lines = [
 
 
 [tool.ruff]
-# Line length matches commonly used defaults
 line-length = 119
 indent-width = 4
 target-version = "py310"
@@ -118,7 +116,6 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-# Common, practical rule sets
 select = [
     "E",   # pycodestyle errors (basic Python style)
     "F",   # pyflakes (detect logical errors)
