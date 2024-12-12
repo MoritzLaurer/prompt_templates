@@ -78,16 +78,6 @@ jobs:
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           
-      - name: Cache Poetry dependencies
-        uses: actions/cache@v4
-        with:
-          key: poetry-${{ hashFiles('poetry.lock') }}
-          path: |
-            ~/.cache/pypoetry
-            .venv
-          restore-keys: |
-            poetry-
-            
       - name: Install dependencies
         run: |
           poetry config virtualenvs.create true
@@ -110,6 +100,4 @@ jobs:
           # Configure git to use the new repository URL
           git remote set-url origin https://github.com/MoritzLaurer/prompt_templates.git
           
-          # Use poetry shell to ensure we're in the right environment
-          poetry shell
           poetry run mkdocs gh-deploy --force
