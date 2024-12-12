@@ -48,9 +48,9 @@ prompt_template = PromptTemplateLoader.from_hub(
 )
 # Inspect template
 print(prompt_template.template)
-[{'role': 'system',
-  'content': '<artifacts_info>\nThe assistant can create and reference artifacts ...'},
- {'role': 'user', 'content': '{{user_message}}'}]
+#[{'role': 'system',
+#  'content': '<artifacts_info>\nThe assistant can create and reference artifacts ...'},
+# {'role': 'user', 'content': '{{user_message}}'}]
 # Check required template variables
 print(prompt_template.template_variables)
 # ['current_date', 'user_message']
