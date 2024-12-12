@@ -40,7 +40,7 @@ jobs:
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: |
-        poetry install --no-interaction --with dev
+        poetry install --no-interaction --with dev --extras inference
 
     - name: Check formatting and imports with Ruff
       continue-on-error: true  # Won't fail the PR
