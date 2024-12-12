@@ -17,7 +17,7 @@ load_dotenv()
 
 
 def sync_test_files():
-    """Upload all local YAML/JSON example prompts to the Hub."""
+    """Upload all local YAML/JSON example prompts to the Hub for each directory."""
     token = os.environ.get("HF_TOKEN")
 
     if not token:
@@ -28,71 +28,86 @@ def sync_test_files():
         )
 
     test_data_dir = Path(__file__).parent
-    repo_id = "MoritzLaurer/example_prompts"
+
+    # Get all directories in the test data folder, excluding __pycache__
+    directories = [d for d in test_data_dir.iterdir() if d.is_dir() and d.name != "__pycache__"]
+
+    if not directories:
+        print("No directories found in test_data directory")
+        return
 
     # Initialize API
     api = HfApi()
 
-    # Ensure repository exists (this won't overwrite if it already exists)
-    try:
-        api.create_repo(repo_id=repo_id, repo_type="model", exist_ok=True, token=token)
-    except Exception as e:
-        print(f"Note about repo creation (can usually be ignored): {e}")
+    # Process each directory
+    for directory in directories:
+        dir_name = directory.name
+        repo_id = f"MoritzLaurer/{dir_name}"
 
-    # Get list of all local prompt files
-    local_files = set()
-    for extension in [".yaml", ".yml", ".json"]:
-        local_files.update(test_data_dir.glob(f"*{extension}"))
+        print(f"\nProcessing directory: {dir_name}")
 
-    if not local_files:
-        print("No YAML/JSON files found in test_data directory")
-        return
+        # Ensure repository exists
+        try:
+            api.create_repo(repo_id=repo_id, repo_type="model", exist_ok=True, token=token)
+        except Exception as e:
+            print(f"Note about repo creation (can usually be ignored): {e}")
+            continue
 
-    try:
-        # Get existing hub files to check for deletions (pass token)
-        hub_files: Set[str] = {
-            f
-            for f in api.list_repo_files(repo_id=repo_id, repo_type="model", token=token)
-            if f.endswith((".yaml", ".yml", ".json"))
-        }
+        # Get list of all local prompt files in this directory
+        local_files = set()
+        for extension in [".yaml", ".yml", ".json", ".md", ".py"]:
+            local_files.update(directory.glob(f"*{extension}"))
 
-        # Upload local files
-        for local_file in local_files:
-            print(f"Uploading {local_file.name} from {str(local_file)} with repo_id {repo_id}...")
-            try:
-                api.upload_file(
-                    path_or_fileobj=str(local_file),
-                    path_in_repo=local_file.name,
-                    repo_id=repo_id,
-                    repo_type="model",
-                    token=token,
-                )
-                # Remove from hub_files set to track what was uploaded
-                hub_files.discard(local_file.name)
-            except Exception as e:
-                print(f"Error uploading {local_file.name}: {e}")
-                continue
+        if not local_files:
+            print(f"No YAML/JSON/MD/PY files found in {dir_name} directory")
+            continue
 
-        # Delete files that exist on hub but not locally
-        for obsolete_file in hub_files:
-            print(f"Deleting {obsolete_file} from hub (no longer exists locally)...")
-            try:
-                api.delete_file(
-                    path_in_repo=obsolete_file,
-                    repo_id=repo_id,
-                    repo_type="model",
-                    token=token,  # Pass the token here
-                )
-            except Exception as e:
-                print(f"Error deleting {obsolete_file}: {e}")
-                continue
+        try:
+            # Get existing hub files to check for deletions
+            hub_files: Set[str] = {
+                f
+                for f in api.list_repo_files(repo_id=repo_id, repo_type="model", token=token)
+                if f.endswith((".yaml", ".yml", ".json", ".md", ".py"))
+            }
 
-        print(f"\nSynced {len(local_files)} files to {repo_id}")
-        if hub_files:
-            print(f"Deleted {len(hub_files)} obsolete files from hub")
+            # Upload local files
+            for local_file in local_files:
+                print(f"Uploading {local_file.name} from {str(local_file)} with repo_id {repo_id}...")
+                try:
+                    api.upload_file(
+                        path_or_fileobj=str(local_file),
+                        path_in_repo=local_file.name,
+                        repo_id=repo_id,
+                        repo_type="model",
+                        token=token,
+                    )
+                    hub_files.discard(local_file.name)
+                except Exception as e:
+                    print(f"Error uploading {local_file.name}: {e}")
+                    continue
 
-    except Exception as e:
-        raise ValueError(f"Error syncing files: {e}") from e
+            # Delete files that exist on hub but not locally
+            for obsolete_file in hub_files:
+                print(f"Deleting {obsolete_file} from hub (no longer exists locally)...")
+                try:
+                    api.delete_file(
+                        path_in_repo=obsolete_file,
+                        repo_id=repo_id,
+                        repo_type="model",
+                        token=token,
+                    )
+                except Exception as e:
+                    print(f"Error deleting {obsolete_file}: {e}")
+                    continue
+
+            print(f"\nSynced {len(local_files)} files to {repo_id}")
+            if hub_files:
+                print(f"Deleted {len(hub_files)} obsolete files from hub")
+            print(f"View repository at: https://huggingface.co/{repo_id}")
+
+        except Exception as e:
+            print(f"Error processing directory {dir_name}: {e}")
+            continue
 
 
 if __name__ == "__main__":

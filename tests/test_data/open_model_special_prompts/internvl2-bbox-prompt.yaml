@@ -1,0 +1,15 @@
+prompt:
+  template:
+    - role: user
+      content: 
+        - type: image_url
+          image_url:
+            url: "{{image_url}}"
+        - type: text
+          text: "Please provide the bounding box coordinate of the region this sentence describes: <ref>{{region_to_detect}}</ref>"
+  template_variables:
+      - image_url
+      - region_to_detect
+  metadata:
+    model: https://huggingface.co/collections/OpenGVLab/internvl-20-667d3961ab5eb12c7ed1463e
+

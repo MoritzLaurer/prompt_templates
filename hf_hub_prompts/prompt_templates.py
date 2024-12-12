@@ -376,7 +376,7 @@ class BasePromptTemplate(ABC):
 
             if undeclared_template_variables:
                 error_parts.append(
-                    f"Template contains variables that are not declared in template_variables: {list(undeclared_template_variables)}"
+                    f"template contains variables that are not declared in template_variables: {list(undeclared_template_variables)}"
                 )
             if unused_template_variables:
                 error_parts.append(

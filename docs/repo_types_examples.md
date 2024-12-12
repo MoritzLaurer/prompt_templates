@@ -25,7 +25,7 @@ contains leaked or released prompts from Anthropic and OpenAI.
 ```python
 from hf_hub_prompts import list_prompt_templates
 list_prompt_templates(repo_id="MoritzLaurer/closed_system_prompts")
-# ['claude-3-5-artifacts-leak-210624.yaml', 'claude-3-5-sonnet-text-090924.yaml', 'claude-3-5-sonnet-text-image-090924.yaml', 'jokes-prompt.yaml', 'openai-metaprompt-audio.yaml', 'openai-metaprompt-text.yaml']
+# ['claude-3-5-artifacts-leak-210624.yaml', 'claude-3-5-sonnet-text-090924.yaml', 'claude-3-5-sonnet-text-image-090924.yaml', 'openai-metaprompt-audio.yaml', 'openai-metaprompt-text.yaml']
 ```
 
 #### Download a specific prompt template
@@ -101,7 +101,7 @@ The community has extracted system prompts from closed API providers like OpenAI
 ```python
 from hf_hub_prompts import list_prompt_templates, PromptTemplateLoader
 list_prompt_templates(repo_id="MoritzLaurer/closed_system_prompts")
-# out: ['claude-3-5-artifacts-leak-210624.yaml', 'claude-3-5-sonnet-text-090924.yaml', 'claude-3-5-sonnet-text-image-090924.yaml', 'jokes-prompt.yaml', 'openai-metaprompt-audio.yaml', 'openai-metaprompt-text.yaml']
+# out: ['claude-3-5-artifacts-leak-210624.yaml', 'claude-3-5-sonnet-text-090924.yaml', 'claude-3-5-sonnet-text-image-090924.yaml', 'openai-metaprompt-audio.yaml', 'openai-metaprompt-text.yaml']
 
 prompt_template = PromptTemplateLoader.from_hub(
   repo_id="MoritzLaurer/closed_system_prompts", 

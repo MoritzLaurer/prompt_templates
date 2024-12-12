@@ -5,8 +5,8 @@ The library expects prompt templates to be stored as modular YAML or JSON files.
 A prompt template YAML or JSON file must follow the following standardized structure:
 
 - Top-level key (required): `prompt`. This top-level key signals to the parser that the content of the file is a prompt template.
-- Second-level key (required): `template`. This can be either a simple string, or a list of dictionaries following the OpenAI messages format. The messages format is recommended for use with LLM APIs or inference containers. Variable placeholders for populating the prompt template string are denoted with double curly brackets {{...}}.
-- Second-level keys (optional): (1) `template_variables`: a list of variables for populating the prompt template. This is used for input validation and to make the required variables for long templates easily accessible; (2) `metadata`: information about the template such as the source, date, author etc.; (3) `client_parameters`: parameters for the inference client (e.g. temperature, model).
+- Second-level key (required): `template`. This can be either a simple _string_, or a _list of dictionaries_ following the OpenAI messages format. The messages format is recommended for use with LLM APIs or inference containers. Variable placeholders for populating the prompt template string are denoted with double curly brackets _{{...}}_.
+- Second-level keys (optional): (1) `template_variables` (_list_): variables for populating the prompt template. This is used for input validation and to make the required variables for long templates easily accessible; (2) `metadata` (_dict_): information about the template such as the source, date, author etc.; (3) `client_parameters` (_dict_): parameters for the inference client (e.g. temperature, model).
 
 Example prompt template following the standard in YAML: 
 ```yaml
@@ -29,7 +29,7 @@ prompt:
     author: "Karl Marx"
 ```
 
-**Naming convention:** We call a file a *"prompt template"*, when it has placeholders ({{...}}) for dynamically populating the template similr to an f-string. This makes files more useful and reusable by others for different use-cases. Once the placeholders in the template are populated with specific variables, we call it a *"prompt"*. 
+**Naming convention:** We call a file a *"prompt template"*, when it has placeholders ({{...}}) for dynamically populating the template similar to an f-string. This makes files more useful and reusable by others for different use-cases. Once the placeholders in the template are populated with specific variables, we call it a *"prompt"*. 
 
 The following example illustrates how the prompt template becomes a prompt. 
 
@@ -101,8 +101,8 @@ A `PromptTemplate` from `hf_hub_prompts` can be easily converted to a langchain 
 ```py
 from hf_hub_prompts import PromptTemplateLoader
 prompt_template = PromptTemplateLoader.from_hub(
-    repo_id="MoritzLaurer/closed_system_prompts",
-    filename="jokes-prompt.yaml"
+    repo_id="MoritzLaurer/example_prompts",
+    filename="code_teacher.yaml"
 )
 prompt_template_langchain = prompt_template.to_langchain_template()
 ```
