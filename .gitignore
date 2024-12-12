@@ -31,3 +31,4 @@ htmlcov/
 
 # other files
 pyproject.artifacts.toml
+pyproject.hf_hub_prompts.toml

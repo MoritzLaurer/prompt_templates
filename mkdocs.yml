@@ -1,8 +1,8 @@
-site_name: HF Hub Prompts
-site_description: A Python library for sharing and downloading prompts on the Hugging Face Hub
-site_url: https://moritzlaurer.github.io/hf_hub_prompts/
-repo_url: https://github.com/MoritzLaurer/hf_hub_prompts
-repo_name: moritzlaurer/hf_hub_prompts
+site_name: Prompt Templates
+site_description: A library for working with prompt templates locally or on the Hugging Face Hub
+site_url: https://moritzlaurer.github.io/prompt_templates/
+repo_url: https://github.com/MoritzLaurer/prompt_templates
+repo_name: moritzlaurer/prompt_templates
 
 nav:
   - Home: 
@@ -65,9 +65,9 @@ extra_css:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/MoritzLaurer/hf_hub_prompts
+      link: https://github.com/MoritzLaurer/prompt_templates
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/hf-hub-prompts/
+      link: https://pypi.org/project/prompt-templates/
 
 markdown_extensions:
   - pymdownx.highlight:

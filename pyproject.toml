@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "prompt-templates"
-version = "0.0.9"
+version = "0.0.7"
 description = "A library for working with prompt templates locally or on the Hugging Face Hub."
 authors = ["MoritzLaurer <moritz@huggingface.co>"]
 license = "Appache-2.0"
 readme = "README.md"
-homepage = "https://github.com/MoritzLaurer/hf_hub_prompts"
+homepage = "https://github.com/MoritzLaurer/prompt_templates"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -58,12 +58,12 @@ black = "^24.10.0"
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-testpaths = ["tests", "hf_hub_prompts", "docs"]
+testpaths = ["tests", "prompt_templates", "docs"]
 python_files = ["test_*.py", "*.py", "*.md"]
 pythonpath = [".","src"]
 addopts = [
     "--verbose",
-    "--cov=hf_hub_prompts",
+    "--cov=prompt_templates",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-branch",
@@ -83,7 +83,7 @@ doctest_optionflags = [
 
 [tool.coverage.run]
 branch = true
-source = ["hf_hub_prompts"]
+source = ["prompt_templates"]
 omit = [
     "tests/*",
     "**/__init__.py",
@@ -135,7 +135,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["hf_hub_prompts"]
+known-first-party = ["prompt_templates"]
 lines-after-imports = 2
 
 [tool.ruff.lint.pydocstyle]
