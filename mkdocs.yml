@@ -7,8 +7,8 @@ repo_name: moritzlaurer/prompt_templates
 nav:
   - Home: 
     - Overview: index.md
-    - HF Hub Repo Types: repo_types_examples.md
     - Standard Prompt Format: standard_prompt_format.md
+    - HF Hub Repo Types: repo_types_examples.md
     - Tools: standard_tool_format.md
     - Agents: agents.md
   - API Reference:
@@ -75,6 +75,8 @@ markdown_extensions:
       anchor_linenums: true  
   - pymdownx.superfences
   - pymdownx.inlinehilite
+  - admonition
+  - pymdownx.details
 
 plugins:
   - search

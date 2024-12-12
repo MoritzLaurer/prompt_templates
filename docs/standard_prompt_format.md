@@ -1,6 +1,6 @@
 # Standardizing prompt templates
 
-The library expects prompt templates to be stored as modular YAML or JSON files. They can be part of any HF repository, see for example the `Files` tab in these repos for [open-weight model prompts](https://huggingface.co/MoritzLaurer/open_models_special_prompts), [closed-model prompts](https://huggingface.co/MoritzLaurer/closed_system_prompts), or [dataset prompts](https://huggingface.co/datasets/MoritzLaurer/dataset_prompts).
+The library expects prompt templates to be stored as modular YAML or JSON files. They can be stored locally or in an HF repository, see for example the `Files` tab in these repos for [open-weight model prompts](https://huggingface.co/MoritzLaurer/open_models_special_prompts), [closed-model prompts](https://huggingface.co/MoritzLaurer/closed_system_prompts), or [dataset prompts](https://huggingface.co/datasets/MoritzLaurer/dataset_prompts).
 
 A prompt template YAML or JSON file must follow the following standardized structure:
 
@@ -113,7 +113,7 @@ prompt_template_langchain = prompt_template.to_langchain_template()
     - The [simplest use](https://huggingface.co/docs/transformers/en/conversations) is via the text-generation pipeline
     - See also details on [chat_templates](https://huggingface.co/docs/transformers/main/en/chat_templating).
 - Limitations: 
-    - The original purpose of these chat_templates is to easily add special tokens that a specific open-source model requires under the hood. The `hub_hub_prompts` library is designed for prompt templates for any LLM, not just open-source LLMs.   
+    - The original purpose of these chat_templates is to easily add special tokens that a specific open-source model requires under the hood. The `prompt_templates` library is designed for prompt templates for any LLM, not just open-source LLMs.   
     - VLMs require special pre-processors that are not directly compatible with the standardized messages format (?). And new VLMs like [InternVL](https://huggingface.co/OpenGVLab/InternVL2-1B/blob/main/tokenizer_config.json) or [Molmo](https://huggingface.co/allenai/Molmo-7B-D-0924) often require non-standardized remote code for image preprocessing. 
     - LLMs like [command-r](https://huggingface.co/CohereForAI/c4ai-command-r-plus-08-2024) have cool special prompts e.g. for grounded generation, but they provide their own custom remote code for preparing prompts/functionalities properly for these special prompts.
 

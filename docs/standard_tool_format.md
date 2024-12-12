@@ -1,5 +1,7 @@
 # Standardizing and Sharing Tools
 
+!!! note
+    Standardizing the sharing of tools and agents is in an early experimental stage.
 
 ## What are LLM tools?
 

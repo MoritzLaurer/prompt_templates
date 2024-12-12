@@ -1,5 +1,8 @@
 # Agents
 
+!!! note
+    Standardizing the sharing of tools and agents is in an early experimental stage.
+
 How could the sharing of agents be standardized on the HF Hub?
 
 A good standard for sharing agents should be: modular, open, and interoperable. 
@@ -9,7 +12,7 @@ Agents have four main components:
 
 1. An orchestration library such as [autogen](https://github.com/microsoft/autogen), [CrewAI](https://github.com/crewAIInc/crewAI), [langchain](https://github.com/langchain-ai/langchain), or [transformers.agents](https://huggingface.co/docs/transformers/en/agents), which implements prompt formatting, tool parsing, API calls, agent interaction etc.
 2. A set of prompt templates that define different tasks and agent personas.
-3. A set of tools, provided as JSON strings, Python dictionaries, or functions.
+3. A set of tools, which are essentially a prompt template + code.
 4. A compute environment to run the agent code, invoking the prompts and tools.
 
 **Modularity** is a fundamental principle in software engineering. It enables maintainability, reusability, scalability, and testability. In practice, however, the code for LLM systems and agents often combines prompt strings, tool functions and the agent orchestration code in the same files. This means that changes in prompts are hard to test and version and it is harder for others to reuse prompt templates or tools for their own systems. 
