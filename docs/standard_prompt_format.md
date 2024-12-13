@@ -52,7 +52,7 @@ The following example illustrates how the prompt template becomes a prompt.
 ...     concept="list comprehension",
 ...     programming_language="Python"
 ... )
->>> prompt.content
+>>> print(prompt)
 [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]
 ```
 
@@ -82,12 +82,14 @@ The following example illustrates how the prompt template becomes a prompt.
 ### Pro/Con prompts as datasets
 - Some prompt datasets like [awesome-chatgpt-prompts](https://huggingface.co/datasets/fka/awesome-chatgpt-prompts) have received many likes on HF
 - The dataset viewer allows for easy and quick visualization
-- Main cons: the tabular data format is not well suited for reusing prompts and is not standard among practitioners
-    - Prompt templates are independent modular units that can be used in different applications, which supports the good practice of modular development, into one tabular file. 
-    - Having multiple prompts in the same dataset forces different prompts to have the same column structure
-    - Datasets on the HF hub are in parquet files, which is not easily editable and interoperable. Editing a prompt in JSON or YAML is much easier than editing a (parquet) dataset and JSON/YAML is much easier to load. 
-    - Extracting a single prompt from a dataset with dataset/pandas-like operations is unnecessarily complicated
-    - Data viewers for tabular data are bad for visualizing the structure of long prompt templates (where e.g. line breaks have an important substantive meaning)
+- Main cons: the tabular data format is not well suited for reusing prompt templates 
+and is not standard among practitioners
+  - Extracting a single prompt from a tabular dataset with dataset/pandas-like operations is unnecessarily complicated.
+  - In industry practice, prompt templates are independent modular units that can be reused for different use-cases. Having multiple templates in the same dataset forces different templates to have the same column structure and prevents proper modular development.  
+  - Datasets on the HF hub are in parquet files, which are not easily editable. Editing a prompt in JSON or YAML is much easier than editing a (parquet) dataset. 
+  - Data viewers for tabular data are bad for visualizing the structure of long prompt templates (where e.g. line breaks have an important substantive meaning). Viewing and editing prompt templates in markdown-like editors is more standard in the ecosystem.
+  - Saving prompt templates as datasets prevents them from being modular components of model or space repos (see [example use-cases](repo_types_examples.md) for this) 
+
 
 
 ### Compatibility with LangChain
