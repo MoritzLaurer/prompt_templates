@@ -32,30 +32,30 @@ pip install prompt-templates
 #### 2. List available prompts in a HF Hub repository. 
 
 ```python
->>> from prompt_templates import list_prompt_templates
->>> files = list_prompt_templates("MoritzLaurer/closed_system_prompts")
->>> files
-['claude-3-5-artifacts-leak-210624.yaml', 'claude-3-5-sonnet-text-090924.yaml', 'claude-3-5-sonnet-text-image-090924.yaml', 'openai-metaprompt-audio.yaml', 'openai-metaprompt-text.yaml']
+from prompt_templates import list_prompt_templates
+files = list_prompt_templates("MoritzLaurer/closed_system_prompts")
+print(files)
+# ['claude-3-5-artifacts-leak-210624.yaml', 'claude-3-5-sonnet-text-090924.yaml', 'claude-3-5-sonnet-text-image-090924.yaml', 'openai-metaprompt-audio.yaml', 'openai-metaprompt-text.yaml']
 ```
 
 #### 3. Download and inspect a prompt template
 
 ```python
->>> from prompt_templates import PromptTemplateLoader
->>> prompt_template = PromptTemplateLoader.from_hub(
-...     repo_id="MoritzLaurer/closed_system_prompts",
-...     filename="claude-3-5-artifacts-leak-210624.yaml"
-... )
->>> # Inspect template
->>> prompt_template.template
-[{'role': 'system',
-  'content': '<artifacts_info>\nThe assistant can create and reference artifacts ...'},
- {'role': 'user', 'content': '{{user_message}}'}]
->>> # Check required template variables
->>> prompt_template.template_variables
-['current_date', 'user_message']
->>> prompt_template.metadata
-{'source': 'https://gist.github.com/dedlim/6bf6d81f77c19e20cd40594aa09e3ecd'}
+from prompt_templates import PromptTemplateLoader
+prompt_template = PromptTemplateLoader.from_hub(
+    repo_id="MoritzLaurer/closed_system_prompts",
+    filename="claude-3-5-artifacts-leak-210624.yaml"
+)
+# Inspect template
+print(prompt_template.template)
+#[{'role': 'system',
+#  'content': '<artifacts_info>\nThe assistant can create and reference artifacts ...'},
+# {'role': 'user', 'content': '{{user_message}}'}]
+# Check required template variables
+print(prompt_template.template_variables)
+# ['current_date', 'user_message']
+print(prompt_template.metadata)
+# {'source': 'https://gist.github.com/dedlim/6bf6d81f77c19e20cd40594aa09e3ecd'}
 ```
 
 
@@ -63,94 +63,94 @@ pip install prompt-templates
 By default, the populated prompt is returned in the OpenAI messages format, which is compatible with most open-source LLM clients.
 
 ```python
->>> messages = prompt_template.populate_template(
-...     user_message="Create a tic-tac-toe game for me in Python",
-...     current_date="Wednesday, 11 December 2024"
-... )
->>> messages
-PopulatedPrompt([{'role': 'system', 'content': '<artifacts_info>\nThe assistant can create and reference artifacts during conversations. Artifacts are ...'}, {'role': 'user', 'content': 'Create a tic-tac-toe game for me in Python'}])
+messages = prompt_template.populate_template(
+    user_message="Create a tic-tac-toe game for me in Python",
+    current_date="Wednesday, 11 December 2024"
+)
+print(messages)
+# PopulatedPrompt([{'role': 'system', 'content': '<artifacts_info>\nThe assistant can create and reference artifacts during conversations. Artifacts are ...'}, {'role': 'user', 'content': 'Create a tic-tac-toe game for me in Python'}])
 ```
 
 #### 5. Use the populated template with any LLM client
 
 ```python
->>> from openai import OpenAI
->>> import os
->>> client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
->>> response = client.chat.completions.create(
-...     model="gpt-4o-mini",
-...     messages=messages
-... )
->>> print(response.choices[0].message.content[:100], "...")
-Here's a simple text-based Tic-Tac-Toe game in Python. This code allows two players to take turns pl ...
+from openai import OpenAI
+import os
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=messages
+)
+print(response.choices[0].message.content[:100], "...")
+# Here's a simple text-based Tic-Tac-Toe game in Python. This code allows two players to take turns pl ...
 ```
 
 ```python
->>> from huggingface_hub import InferenceClient
->>> client = InferenceClient(api_key=os.environ.get("HF_TOKEN"))
->>> response = client.chat.completions.create(
-...     model="meta-llama/Llama-3.3-70B-Instruct", 
-...     messages=messages.to_dict(),
-...     max_tokens=500
-... )
->>> print(response.choices[0].message.content[:100], "...")
-<antThinking>Creating a tic-tac-toe game in Python is a good candidate for an artifact. It's a self- ...
+from huggingface_hub import InferenceClient
+client = InferenceClient(api_key=os.environ.get("HF_TOKEN"))
+response = client.chat.completions.create(
+    model="meta-llama/Llama-3.3-70B-Instruct", 
+    messages=messages.to_dict(),
+    max_tokens=500
+)
+print(response.choices[0].message.content[:100], "...")
+# <antThinking>Creating a tic-tac-toe game in Python is a good candidate for an artifact. It's a self- ...
 ```
 
 If you use an LLM client that expects a format different to the OpenAI messages standard, you can easily reformat the prompt for this client.
 
 ```python
->>> from anthropic import Anthropic
+from anthropic import Anthropic
 
->>> messages_anthropic = messages.format_for_client(client="anthropic")
+messages_anthropic = messages.format_for_client(client="anthropic")
 
->>> client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
->>> response = client.messages.create(
-...     model="claude-3-sonnet-20240229",
-...     system=messages_anthropic["system"],
-...     messages=messages_anthropic["messages"],
-...     max_tokens=1000
-... )
->>> print(response.content[0].text[:100], "...")
-Sure, I can create a tic-tac-toe game for you in Python. Here's a simple implementation: ...
+client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+response = client.messages.create(
+    model="claude-3-sonnet-20240229",
+    system=messages_anthropic["system"],
+    messages=messages_anthropic["messages"],
+    max_tokens=1000
+)
+print(response.content[0].text[:100], "...")
+# Sure, I can create a tic-tac-toe game for you in Python. Here's a simple implementation: ...
 ```
 
 
 #### 6. Create your own prompt templates
 
 ```python
->>> from prompt_templates import ChatPromptTemplate
->>> messages_template = [
-...     {"role": "system", "content": "You are a coding assistant who explains concepts clearly and provides short examples."},
-...     {"role": "user", "content": "Explain what {{concept}} is in {{programming_language}}."}
-... ]
->>> template_variables = ["concept", "programming_language"]
->>> metadata = {
-...     "name": "Code Teacher",
-...     "description": "A simple chat prompt for explaining programming concepts with examples",
-...     "tags": ["programming", "education"],
-...     "version": "0.0.1",
-...     "author": "Guido van Bossum"
-... }
->>> prompt_template = ChatPromptTemplate(
-...     template=messages_template,
-...     template_variables=template_variables,
-...     metadata=metadata,
-... )
+from prompt_templates import ChatPromptTemplate
+messages_template = [
+    {"role": "system", "content": "You are a coding assistant who explains concepts clearly and provides short examples."},
+    {"role": "user", "content": "Explain what {{concept}} is in {{programming_language}}."}
+]
+template_variables = ["concept", "programming_language"]
+metadata = {
+    "name": "Code Teacher",
+    "description": "A simple chat prompt for explaining programming concepts with examples",
+    "tags": ["programming", "education"],
+    "version": "0.0.1",
+    "author": "Guido van Bossum"
+}
+prompt_template = ChatPromptTemplate(
+    template=messages_template,
+    template_variables=template_variables,
+    metadata=metadata,
+)
 
->>> prompt_template
-ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., client_parameters={}, custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopu...)
+print(prompt_template)
+# ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., client_parameters={}, custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopu...)
 ```
 
 #### 7. Store or share your prompt templates
 You can then store your prompt template locally or share it on the HF Hub.
 
 ```python
->>> # save locally
->>> prompt_template.save_to_local("./tests/test_data/code_teacher_test.yaml")
->>> # or save it on the HF Hub
->>> prompt_template.save_to_hub(repo_id="MoritzLaurer/example_prompts_test", filename="code_teacher_test.yaml", create_repo=True)
-CommitInfo(commit_url='https://huggingface.co/MoritzLaurer/example_prompts_test/commit/4cefd2c94f684f9bf419382f96b36692cd175e84', commit_message='Upload prompt template code_teacher_test.yaml', commit_description='', oid='4cefd2c94f684f9bf419382f96b36692cd175e84', pr_url=None, repo_url=RepoUrl('https://huggingface.co/MoritzLaurer/example_prompts_test', endpoint='https://huggingface.co', repo_type='model', repo_id='MoritzLaurer/example_prompts_test'), pr_revision=None, pr_num=None)
+# save locally
+prompt_template.save_to_local("./tests/test_data/code_teacher_test.yaml")
+# or save it on the HF Hub
+prompt_template.save_to_hub(repo_id="MoritzLaurer/example_prompts_test", filename="code_teacher_test.yaml", create_repo=True)
+# CommitInfo(commit_url='https://huggingface.co/MoritzLaurer/example_prompts_test/commit/4cefd2c94f684f9bf419382f96b36692cd175e84', commit_message='Upload prompt template code_teacher_test.yaml', commit_description='', oid='4cefd2c94f684f9bf419382f96b36692cd175e84', pr_url=None, repo_url=RepoUrl('https://huggingface.co/MoritzLaurer/example_prompts_test', endpoint='https://huggingface.co', repo_type='model', repo_id='MoritzLaurer/example_prompts_test'), pr_revision=None, pr_num=None)
 ```
 
 
