@@ -84,11 +84,11 @@ The following example illustrates how the prompt template becomes a prompt.
 - The dataset viewer allows for easy and quick visualization
 - Main cons: the tabular data format is not well suited for reusing prompt templates 
 and is not standard among practitioners
-  - Extracting a single prompt from a tabular dataset with dataset/pandas-like operations is unnecessarily complicated.
-  - In industry practice, prompt templates are independent modular units that can be reused for different use-cases. Having multiple templates in the same dataset forces different templates to have the same column structure and prevents proper modular development.  
-  - Datasets on the HF hub are in parquet files, which are not easily editable. Editing a prompt in JSON or YAML is much easier than editing a (parquet) dataset. 
-  - Data viewers for tabular data are bad for visualizing the structure of long prompt templates (where e.g. line breaks have an important substantive meaning). Viewing and editing prompt templates in markdown-like editors is more standard in the ecosystem.
-  - Saving prompt templates as datasets prevents them from being modular components of model or space repos (see [example use-cases](repo_types_examples.md) for this) 
+    - Extracting a single prompt from a tabular dataset with dataset/pandas-like operations is unnecessarily complicated.
+    - In industry practice, prompt templates are independent modular units that can be reused for different use-cases. Having multiple templates in the same dataset forces different templates to have the same column structure and prevents proper modular development.  
+    - Datasets on the HF hub are in parquet files, which are not easily editable. Editing a prompt in JSON or YAML is much easier than editing a (parquet) dataset. 
+    - Data viewers for tabular data are bad for visualizing the structure of long prompt templates (where e.g. line breaks have an important substantive meaning). Viewing and editing prompt templates in markdown-like editors is more standard in the ecosystem.
+    - Saving prompt templates as datasets prevents them from being modular components of model or space repos (see [example use-cases](repo_types_examples.md) for this) 
 
 
 
