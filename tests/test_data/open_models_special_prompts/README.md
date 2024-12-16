@@ -1,7 +1,9 @@
 ---
 license: mit
+library_name: prompt-templates
 tags:
-- prompt
+- prompts
+- model-prompts
 ---
 
 ## Sharing special prompts of open-weight models
@@ -14,7 +16,7 @@ To elicit this capability, users need to use this special prompt: `Please provid
 These these kinds of task-specific special prompts are currently unsystematically reported in model cards, github repos, .txt files etc. 
 
 The prompt_templates library standardises the sharing of prompts in YAML files.
-I recommend sharing these these special prompts directly in the model repository of the respective. 
+I recommend sharing these special prompts directly in the model repository of the respective model. 
 
 Below is an example for the InternVL2 model. 
 
@@ -31,7 +33,7 @@ prompt_template = PromptTemplateLoader.from_hub(repo_id="MoritzLaurer/open_model
 # populate prompt
 image_url = "https://unsplash.com/photos/ZVw3HmHRhv0/download?ixid=M3wxMjA3fDB8MXxhbGx8NHx8fHx8fDJ8fDE3MjQ1NjAzNjl8&force=true&w=1920"
 region_to_detect = "the bird"
-messages = prompt_template.format_messages(image_url=image_url, region_to_detect=region_to_detect, client="openai")
+messages = prompt_template.populate_template(image_url=image_url, region_to_detect=region_to_detect)
 
 print(messages)
 # out: [{'role': 'user'
@@ -49,7 +51,7 @@ prompt_template = PromptTemplateLoader.from_hub(repo_id="MoritzLaurer/open_model
 
 # populate prompt
 image_url = "https://unsplash.com/photos/ZVw3HmHRhv0/download?ixid=M3wxMjA3fDB8MXxhbGx8NHx8fHx8fDJ8fDE3MjQ1NjAzNjl8&force=true&w=1920"
-messages = prompt_template.format_messages(image_url=image_url, client="openai")
+messages = prompt_template.populate_template(image_url=image_url)
 
 print(messages)
 # [{'role': 'user',

@@ -7,18 +7,18 @@ The HF Hub is currently organized around three main repository types:
 - Dataset repositories: Repos with tabular datasets (mostly in parquet format). 
 - Spaces repositories: Repos with hosted applications (often with code and data, which is then visualized in the Space).
 
-Prompt templates can be integrated into any of these repository types as .yaml or .json files. [TODO: add JSON support, currently only YAML is supported.]
+Prompt templates can be saved into any of these repository types as .yaml or .json files. We recommend saving prompt templates in dataset repos by default. 
 
 
 
-## 1. Prompt templates as independent artifacts in model repos
-Many prompt templates can be reused with various models and are not linked to specific model weights. These prompt templates can be shared in an HF model repo, where the model card provides a description and usage instructions, and prompt templates are shared via .yaml or .json files in the same repository.
+## 1. Saving collections of prompt templates as independent artifacts in dataset repos
+Many prompt templates can be reused in different projects and with different models. We recommend sharing collections of reusable prompt templates in HF dataset repos, where the dataset card provides a description and usage instructions and the templates are shared as .yaml or .json files in the same repository.
 
 
 <details>
   <summary>1. Example: using the <a href="https://gist.github.com/dedlim/6bf6d81f77c19e20cd40594aa09e3ecd">leaked Claude Artifacts prompt</a></summary>
 
-#### List all prompt templates stored in a HF model repo
+#### List all prompt templates stored in a HF dataset repo
 This [example HF repository](https://huggingface.co/MoritzLaurer/closed_system_prompts) 
 contains leaked or released prompts from Anthropic and OpenAI. 
 
@@ -45,7 +45,7 @@ print(prompt_template)
 Prompt templates are downloaded as either `ChatPromptTemplate` or `TextPromptTemplate` classes. This class makes it easy to populate a prompt template and convert it into a format that's compatible with different LLM clients. The type is automatically determined based on whether the YAML contains a simple string (TextPromptTemplate) or a list of dictionaries following the OpenAI messages format (ChatPromptTemplate).
 
 #### Populate and use the prompt template
-With the `create_messages` method, we can then populate the prompt template for a specific use-case.
+We can then populate the prompt template for a specific use-case.
 
 ```python
 # Check which variables the prompt template requires
@@ -53,14 +53,17 @@ print(prompt_template.template_variables)
 # ['current_date', 'user_message']
 
 user_message = "Create a simple calculator web application"
-messages_anthropic = prompt_template.create_messages(
+messages = prompt_template.populate_template(
     user_message=user_message, 
     current_date="Monday 21st October 2024", 
-    client="anthropic"
 )
+
+# The default output is in the OpenAI messages format. We can easily reformat it for another client.
+messages_anthropic = messages.format_for_client(client="anthropic")
+
 ```
 
-The output is a list or a dictionary in the format expected by the specified LLM client. For example, OpenAI expects a list of message dictionaries, while Anthropic expects a dictionary with "system" and "messages" keys.
+The output is a PopulatedPrompt instance which contains a list or a dictionary in the format expected by the specified LLM client. For example, OpenAI expects a list of message dictionaries, while Anthropic expects a dictionary with "system" and "messages" keys.
 
 ```python
 #!pip install anthropic
@@ -80,13 +83,13 @@ response = client_anthropic.messages.create(
 
 <details>
   <summary>2. Example: <a href="https://arxiv.org/pdf/2410.12784">JudgeBench paper</a> prompts</summary>
-The paper "JudgeBench: A Benchmark for Evaluating LLM-Based Judges" (<a href="https://arxiv.org/pdf/2410.12784">paper</a>) collects several prompts for using LLMs to evaluate unstructured LLM outputs. After copying them into a <a href="https://huggingface.co/MoritzLaurer/judgebench-prompts">HF Hub model repo</a> in the standardized YAML format, they can be directly loaded and populated.
+The paper "JudgeBench: A Benchmark for Evaluating LLM-Based Judges" (<a href="https://arxiv.org/pdf/2410.12784">paper</a>) collects several prompts for using LLMs to evaluate unstructured LLM outputs. After copying them into a HF Hub dataset repo in the standardized YAML format, they can be directly loaded and populated.
 
 ```python
 from prompt_templates import PromptTemplateLoader
 prompt_template = PromptTemplateLoader.from_hub(
-  repo_id="MoritzLaurer/judgebench-prompts", 
-  filename="vanilla-prompt.yaml"
+  repo_id="MoritzLaurer/prompts_from_papers", 
+  filename="judgebench-vanilla-prompt.yaml"
 )
 
 ```
@@ -95,7 +98,7 @@ prompt_template = PromptTemplateLoader.from_hub(
 
 <details>
   <summary>3. Example: Sharing <a href="https://huggingface.co/MoritzLaurer/closed_system_prompts">closed system prompts</a></summary>
-The community has extracted system prompts from closed API providers like OpenAI or Anthropic and these prompts are unsystematically shared via GitHub, Reddit etc. (e.g. <a href="https://gist.github.com/dedlim/6bf6d81f77c19e20cd40594aa09e3ecd">Anthropic Artifacts prompt</a>). Some API providers have also started sharing their system prompts on their websites in non-standardized HTML (<a href="https://docs.anthropic.com/en/release-notes/system-prompts#sept-9th-2024">Anthropic</a>, <a href="https://platform.openai.com/docs/guides/prompt-generation">OpenAI</a>). To simplify to use of these prompts, they can be shared in a <a href="https://huggingface.co/MoritzLaurer/closed_system_prompts">HF Hub model repo</a> as standardized YAML files.  
+The community has extracted system prompts from closed API providers like OpenAI or Anthropic and these prompts are unsystematically shared via GitHub, Reddit etc. (e.g. <a href="https://gist.github.com/dedlim/6bf6d81f77c19e20cd40594aa09e3ecd">Anthropic Artifacts prompt</a>). Some API providers have also started sharing their system prompts on their websites in non-standardized HTML (<a href="https://docs.anthropic.com/en/release-notes/system-prompts#sept-9th-2024">Anthropic</a>, <a href="https://platform.openai.com/docs/guides/prompt-generation">OpenAI</a>). To simplify to use of these prompts, they can be shared in a <a href="https://huggingface.co/MoritzLaurer/closed_system_prompts">HF Hub dataset repo</a> as standardized YAML files.  
 
 
 ```python
@@ -112,7 +115,7 @@ prompt_template = PromptTemplateLoader.from_hub(
 
 
 
-## 2. Sharing prompts together with model weights
+## 2. Attaching prompt templates to model weights
 Some open-weight LLMs have been trained to exhibit specific behaviours with specific prompt templates.
 The vision language model [InternVL2](https://huggingface.co/collections/OpenGVLab/internvl-20-667d3961ab5eb12c7ed1463e) was trained to predict bounding boxes for manually specified areas with a special prompt template; 
 the VLM [Molmo](https://huggingface.co/collections/allenai/molmo-66f379e6fe3b8ef090a8ca19) was trained to predict point coordinates of objects of images with a special prompt template; etc.
@@ -135,7 +138,7 @@ prompt_template = PromptTemplateLoader.from_hub(
 # populate prompt
 image_url = "https://unsplash.com/photos/ZVw3HmHRhv0/download?ixid=M3wxMjA3fDB8MXxhbGx8NHx8fHx8fDJ8fDE3MjQ1NjAzNjl8&force=true&w=1920"
 region_to_detect = "the bird"
-messages = prompt_template.create_messages(image_url=image_url, region_to_detect=region_to_detect, client="openai")
+messages = prompt_template.populate_template(image_url=image_url, region_to_detect=region_to_detect)
 
 print(messages)
 #[{'role': 'user',
@@ -171,7 +174,7 @@ response.choices[0].message.content
 
 
 
-## 3. Attaching prompts to datasets
+## 3. Attaching prompt templates to datasets
 LLMs are increasingly used to help create datasets, for example for quality filtering or synthetic text generation.
 The prompt templates used for creating a dataset are currently unsystematically shared on GitHub ([example](https://github.com/huggingface/cosmopedia/tree/main/prompts)), 
 referenced in dataset cards ([example](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu#annotation)), or stored in .txt files ([example](https://huggingface.co/HuggingFaceFW/fineweb-edu-classifier/blob/main/utils/prompt.txt)), 
@@ -186,7 +189,7 @@ To facilitate reproduction, these dataset prompt templates can be shared in YAML
 The FineWeb-Edu dataset was created by prompting `Meta-Llama-3-70B-Instruct` to score the educational value of web texts.
 The authors <a href="https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu#annotation">provide the prompt template</a> in a <a href="https://huggingface.co/HuggingFaceFW/fineweb-edu-classifier/blob/main/utils/prompt.txt">.txt</a> file.
 
-When provided in a YAML/JSON file in the dataset repo, the prompt template can easily be loaded and supplemented with metadata like the model_id or generation parameters for easy reproducibility. 
+When provided in a YAML/JSON file in the dataset repo, the prompt template can easily be loaded and supplemented with client_parameters like the model_id or generation parameters for easy reproducibility. 
 See this <a href="https://huggingface.co/datasets/MoritzLaurer/dataset_prompts">example dataset repository</a>
 
 
@@ -198,12 +201,11 @@ from transformers import pipeline
 prompt_template = PromptTemplateLoader.from_hub(
   repo_id="MoritzLaurer/dataset_prompts", 
   filename="fineweb-edu-prompt.yaml", 
-  repo_type="dataset"
 )
 
 # populate the prompt
 text_to_score = "The quick brown fox jumps over the lazy dog"
-messages = prompt_template.create_messages(text_to_score=text_to_score)
+messages = prompt_template.populate_template(text_to_score=text_to_score)
 
 # test prompt with local llama
 model_id = "meta-llama/Llama-3.2-1B-Instruct"  # prompt was original created for meta-llama/Meta-Llama-3-70B-Instruct
@@ -239,11 +241,12 @@ The prompts could be directly added to the dataset repository in the standardize
 
 
 
-## 4. Attaching prompts to HF Spaces
+## 4. Attaching prompt templates to HF Spaces
+
+[TODO: create example]
 
 See also the [Agents](agents.md) and [Tools](standard_tool_format.md) page for using HF Spaces for hosting prompts and tools as part of agents.
 
-[TODO: create example]
 
 
 

@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Literal, Match, Optional, Set
 import jinja2
 import yaml
 from huggingface_hub import HfApi
+from huggingface_hub.hf_api import CommitInfo
+from huggingface_hub.utils import RepositoryNotFoundError
 from jinja2 import Environment, meta
 
 from .constants import Jinja2SecurityLevel, PopulatorType
@@ -101,25 +103,39 @@ class BasePromptTemplate(ABC):
         self,
         repo_id: str,
         filename: str,
-        repo_type: str = "model",
-        token: Optional[str] = None,
-        commit_message: Optional[str] = None,
-        create_repo: bool = False,
+        repo_type: str = "dataset",
         format: Optional[Literal["yaml", "json"]] = None,
-    ) -> Any:
+        token: Optional[str] = None,
+        create_repo: bool = False,
+        private: bool = False,
+        exist_ok: bool = True,
+        resource_group_id: Optional[str] = None,
+        revision: Optional[str] = None,
+        create_pr: bool = False,
+        commit_message: Optional[str] = None,
+        commit_description: Optional[str] = None,
+        parent_commit: Optional[str] = None,
+    ) -> CommitInfo:
         """Save the prompt template to the Hugging Face Hub as a YAML or JSON file.
 
         Args:
             repo_id: The repository ID on the Hugging Face Hub (e.g., "username/repo-name")
             filename: Name of the file to save (e.g., "prompt.yaml" or "prompt.json")
-            repo_type: Type of repository ("model", "dataset", or "space"). Defaults to "model"
+            repo_type: Type of repository ("dataset", "model", or "space"). Defaults to "dataset"
             token: Hugging Face API token. If None, will use token from environment
             commit_message: Custom commit message. If None, uses default message
             create_repo: Whether to create the repository if it doesn't exist. Defaults to False
             format: Output format ("yaml" or "json"). If None, inferred from filename extension
+            private: Whether to create a private repository. Defaults to False
+            exist_ok: Don't error if repo already exists. Defaults to True
+            resource_group_id: Optional resource group ID to associate with the repository
+            revision: Optional branch/revision to push to. Defaults to main branch
+            create_pr: Whether to create a Pull Request instead of pushing directly. Defaults to False
+            commit_description: Optional commit description
+            parent_commit: Optional parent commit to create PR from
 
         Returns:
-            str: URL of the uploaded file on the Hugging Face Hub
+            CommitInfo: Information about the commit/PR
 
         Examples:
             >>> from prompt_templates import ChatPromptTemplate
@@ -144,6 +160,7 @@ class BasePromptTemplate(ABC):
             ...     repo_id="MoritzLaurer/example_prompts_test",
             ...     filename="code_teacher_test.yaml",
             ...     #create_repo=True,  # if the repo does not exist, create it
+            ...     #private=True,  # if you want to create a private repo
             ...     #token="hf_..."
             ... )
             'https://huggingface.co/MoritzLaurer/example_prompts_test/blob/main/code_teacher_test.yaml'
@@ -184,15 +201,36 @@ class BasePromptTemplate(ABC):
 
         # Upload to Hub
         api = HfApi(token=token)
-        if create_repo:
-            api.create_repo(repo_id=repo_id, repo_type=repo_type, exist_ok=True)
 
+        # Create repository if requested
+        if create_repo:
+            api.create_repo(
+                repo_id=repo_id,
+                repo_type=repo_type,
+                token=token,
+                private=private,
+                exist_ok=exist_ok,
+                resource_group_id=resource_group_id,
+            )
+        else:
+            # Check if repo exists to provide better error message
+            try:
+                api.repo_info(repo_id=repo_id, repo_type=repo_type)
+            except RepositoryNotFoundError as e:
+                raise ValueError(f"Repository {repo_id} does not exist. Set create_repo=True to create it.") from e
+
+        # Upload file
         return api.upload_file(
             path_or_fileobj=file_content.encode(),
             path_in_repo=filename,
             repo_id=repo_id,
             repo_type=repo_type,
+            token=token,
             commit_message=commit_message or f"Upload prompt template {filename}",
+            commit_description=commit_description,
+            revision=revision,
+            create_pr=create_pr,
+            parent_commit=parent_commit,
         )
 
     def save_to_local(self, path: Union[str, Path], format: Optional[Literal["yaml", "json"]] = None) -> None:

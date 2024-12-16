@@ -120,7 +120,7 @@ class PromptTemplateLoader:
         cls,
         repo_id: str,
         filename: str,
-        repo_type: str = "model",
+        repo_type: str = "dataset",
         revision: Optional[str] = None,
         populator: Optional[PopulatorType] = None,
         jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
@@ -134,7 +134,7 @@ class PromptTemplateLoader:
             repo_id (str): The repository ID on Hugging Face Hub (e.g., 'username/repo')
             filename (str): Name of the YAML file containing the template
             repo_type (str, optional): Type of repository. Must be one of
-                ['model', 'dataset', 'space']. Defaults to "model"
+                ['dataset', 'model', 'space']. Defaults to "dataset"
             revision (Optional[str], optional): Git revision to download from.
                 Can be a branch name, tag, or commit hash. Defaults to None
 
@@ -183,8 +183,8 @@ class PromptTemplateLoader:
         except ValueError as e:
             raise ValueError(f"Invalid repo_id format: {str(e)}") from e
 
-        if repo_type not in ["model", "dataset", "space"]:
-            raise ValueError(f"repo_type must be one of ['model', 'dataset', 'space'], got {repo_type}")
+        if repo_type not in ["dataset", "model", "space"]:
+            raise ValueError(f"repo_type must be one of ['dataset', 'model', 'space'], got {repo_type}")
 
         # Ensure .yaml extension
         if not filename.endswith(VALID_PROMPT_EXTENSIONS):
@@ -349,7 +349,7 @@ class ToolLoader:
         return tool
 
     @classmethod
-    def from_hub(cls, repo_id: str, filename: str, repo_type: str = "model", revision: Optional[str] = None) -> Tool:
+    def from_hub(cls, repo_id: str, filename: str, repo_type: str = "dataset", revision: Optional[str] = None) -> Tool:
         """Load a tool from the Hugging Face Hub.
 
         Downloads and loads a tool function from a repository on the Hugging Face Hub.
@@ -359,7 +359,7 @@ class ToolLoader:
             repo_id (str): The repository ID on Hugging Face Hub (e.g., 'username/repo')
             filename (str): Name of the Python file containing the tool
             repo_type (str, optional): Type of repository. Must be one of
-                ['model', 'dataset', 'space']. Defaults to "model"
+                ['dataset', 'model', 'space']. Defaults to "dataset"
             revision (Optional[str], optional): Git revision to download from.
                 Can be a branch name, tag, or commit hash. Defaults to None
 
@@ -387,8 +387,8 @@ class ToolLoader:
         except ValueError as e:
             raise ValueError(f"Invalid repo_id format: {str(e)}") from e
 
-        if repo_type not in ["model", "dataset", "space"]:
-            raise ValueError(f"repo_type must be one of ['model', 'dataset', 'space'], got {repo_type}")
+        if repo_type not in ["dataset", "model", "space"]:
+            raise ValueError(f"repo_type must be one of ['dataset', 'model', 'space'], got {repo_type}")
 
         # Ensure .py extension
         if not filename.endswith(".py"):
@@ -550,12 +550,14 @@ class ToolLoader:
         return dependencies
 
 
-def list_prompt_templates(repo_id: str, repo_type: Optional[str] = "model", token: Optional[str] = None) -> List[str]:
+def list_prompt_templates(
+    repo_id: str, repo_type: Optional[str] = "dataset", token: Optional[str] = None
+) -> List[str]:
     """List available prompt template YAML files in a Hugging Face Hub repository.
 
     Args:
         repo_id (str): The repository ID on Hugging Face Hub.
-        repo_type (Optional[str]): The type of repository. Defaults to "model".
+        repo_type (Optional[str]): The type of repository. Defaults to "dataset".
         token (Optional[str]): An optional authentication token. Defaults to None.
 
     Returns:
@@ -583,12 +585,12 @@ def list_prompt_templates(repo_id: str, repo_type: Optional[str] = "model", toke
     return sorted(yaml_files)
 
 
-def list_tools(repo_id: str, repo_type: str = "model", token: Optional[str] = None) -> List[str]:
+def list_tools(repo_id: str, repo_type: str = "dataset", token: Optional[str] = None) -> List[str]:
     """List available tool Python files in a Hugging Face Hub repository.
 
     Args:
         repo_id (str): The repository ID on Hugging Face Hub
-        repo_type (str, optional): The type of repository. Defaults to "model"
+        repo_type (str, optional): The type of repository. Defaults to "dataset"
         token (Optional[str], optional): An optional authentication token. Defaults to None
 
     Returns:

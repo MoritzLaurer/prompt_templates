@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 from typing import Set
 
+import yaml
 from dotenv import load_dotenv
 from huggingface_hub import HfApi
 
@@ -44,11 +45,14 @@ def sync_test_files():
         dir_name = directory.name
         repo_id = f"MoritzLaurer/{dir_name}"
 
-        print(f"\nProcessing directory: {dir_name}")
+        # Determine repo_type based on README.md tags
+        repo_type = "model" if has_model_prompts_tag(directory) else "dataset"
+
+        print(f"\nProcessing directory: {dir_name} as {repo_type}")
 
         # Ensure repository exists
         try:
-            api.create_repo(repo_id=repo_id, repo_type="model", exist_ok=True, token=token)
+            api.create_repo(repo_id=repo_id, repo_type=repo_type, exist_ok=True, token=token)
         except Exception as e:
             print(f"Note about repo creation (can usually be ignored): {e}")
             continue
@@ -66,7 +70,7 @@ def sync_test_files():
             # Get existing hub files to check for deletions
             hub_files: Set[str] = {
                 f
-                for f in api.list_repo_files(repo_id=repo_id, repo_type="model", token=token)
+                for f in api.list_repo_files(repo_id=repo_id, repo_type=repo_type, token=token)
                 if f.endswith((".yaml", ".yml", ".json", ".md", ".py"))
             }
 
@@ -78,7 +82,7 @@ def sync_test_files():
                         path_or_fileobj=str(local_file),
                         path_in_repo=local_file.name,
                         repo_id=repo_id,
-                        repo_type="model",
+                        repo_type=repo_type,
                         token=token,
                     )
                     hub_files.discard(local_file.name)
@@ -86,14 +90,14 @@ def sync_test_files():
                     print(f"Error uploading {local_file.name}: {e}")
                     continue
 
-            # Delete files that exist on hub but not locally
+            # Delete files on hub that exist on hub but not locally
             for obsolete_file in hub_files:
                 print(f"Deleting {obsolete_file} from hub (no longer exists locally)...")
                 try:
                     api.delete_file(
                         path_in_repo=obsolete_file,
                         repo_id=repo_id,
-                        repo_type="model",
+                        repo_type=repo_type,
                         token=token,
                     )
                 except Exception as e:
@@ -108,6 +112,31 @@ def sync_test_files():
         except Exception as e:
             print(f"Error processing directory {dir_name}: {e}")
             continue
+
+
+def has_model_prompts_tag(directory: Path) -> bool:
+    """Check if README.md in directory has model-prompts tag.
+    This enables us to sync the test data to the Hub as a model repo as opposed to the default dataset repo if the README.md contains the tag."""
+    readme_path = directory / "README.md"
+    if not readme_path.exists():
+        return False
+
+    try:
+        # Read the README file
+        content = readme_path.read_text()
+
+        # Check if there's a YAML front matter
+        if not content.startswith("---"):
+            return False
+
+        # Extract YAML front matter
+        yaml_content = content.split("---")[1]
+        metadata = yaml.safe_load(yaml_content)
+
+        # Check if tags exist and if model-prompts is in tags
+        return isinstance(metadata.get("tags"), list) and "model-prompts" in metadata["tags"]
+    except Exception:
+        return False
 
 
 if __name__ == "__main__":

@@ -150,7 +150,7 @@ You can then store your prompt template locally or share it on the HF Hub.
 >>> prompt_template.save_to_local("./tests/test_data/code_teacher_test.yaml")
 >>> # or save it on the HF Hub
 >>> prompt_template.save_to_hub(repo_id="MoritzLaurer/example_prompts_test", filename="code_teacher_test.yaml", create_repo=True)
-CommitInfo(commit_url='https://huggingface.co/MoritzLaurer/example_prompts_test/commit/4cefd2c94f684f9bf419382f96b36692cd175e84', commit_message='Upload prompt template code_teacher_test.yaml', commit_description='', oid='4cefd2c94f684f9bf419382f96b36692cd175e84', pr_url=None, repo_url=RepoUrl('https://huggingface.co/MoritzLaurer/example_prompts_test', endpoint='https://huggingface.co', repo_type='model', repo_id='MoritzLaurer/example_prompts_test'), pr_revision=None, pr_num=None)
+CommitInfo(commit_url='https://huggingface.co/MoritzLaurer/example_prompts_test/commit/4cefd2c94f684f9bf419382f96b36692cd175e84', commit_message='Upload prompt template code_teacher_test.yaml', commit_description='', oid='4cefd2c94f684f9bf419382f96b36692cd175e84', pr_url=None, repo_url=RepoUrl('https://huggingface.co/MoritzLaurer/example_prompts_test', endpoint='https://huggingface.co', repo_type='dataset', repo_id='MoritzLaurer/example_prompts_test'), pr_revision=None, pr_num=None)
 ```
 
 

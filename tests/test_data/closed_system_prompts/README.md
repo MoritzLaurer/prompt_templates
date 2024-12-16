@@ -1,7 +1,8 @@
 ---
 license: mit
+library_name: prompt-templates
 tags:
-- prompt
+- prompts
 ---
 
 # System prompts of prominent closed LLM providers
