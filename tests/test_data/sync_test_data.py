@@ -1,26 +1,36 @@
 """
 Script to sync local test data to the Hub.
 Usage:
-poetry run python tests/test_data/sync_test_data.py
+poetry run python tests/test_data/sync_test_data.py [--force]
 """
 
+import argparse
+import json
 import os
 from pathlib import Path
-from typing import Set
 
 import yaml
 from dotenv import load_dotenv
 from huggingface_hub import HfApi
+from tqdm import tqdm
+
+from prompt_templates import PromptTemplateLoader
+
+
+MODEL_REPOS = ["open_models_special_prompts"]
 
 
 # Load token from .env file
 load_dotenv()
 
 
-def sync_test_files():
-    """Upload all local YAML/JSON example prompts to the Hub for each directory."""
-    token = os.environ.get("HF_TOKEN")
+def sync_test_files(force: bool = False):
+    """Upload all local YAML/JSON example prompt templates to the Hub for each directory.
 
+    Args:
+        force: If True, skip confirmation for local file updates
+    """
+    token = os.environ.get("HF_TOKEN")
     if not token:
         raise ValueError(
             "No HF_TOKEN found in environment variables. "
@@ -29,6 +39,7 @@ def sync_test_files():
         )
 
     test_data_dir = Path(__file__).parent
+    api = HfApi(token=token)
 
     # Get all directories in the test data folder, excluding __pycache__
     directories = [d for d in test_data_dir.iterdir() if d.is_dir() and d.name != "__pycache__"]
@@ -37,107 +48,94 @@ def sync_test_files():
         print("No directories found in test_data directory")
         return
 
-    # Initialize API
-    api = HfApi()
-
-    # Process each directory
-    for directory in directories:
+    for directory in tqdm(directories, desc="Processing directories", leave=False):
         dir_name = directory.name
         repo_id = f"MoritzLaurer/{dir_name}"
 
-        # Determine repo_type based on README.md tags
-        repo_type = "model" if has_model_prompts_tag(directory) else "dataset"
+        # Determine repo_type
+        repo_type = "model" if dir_name in MODEL_REPOS else "dataset"
 
-        print(f"\nProcessing directory: {dir_name} as {repo_type}")
+        print(f"\nProcessing directory: {dir_name}   (as repo type {repo_type})")
 
-        # Ensure repository exists
+        # Get all local and remote files for the respective directory and it's mirror Hub repo
+        local_files = {f for ext in [".yaml", ".yml", ".json"] for f in directory.glob(f"*{ext}")}
         try:
-            api.create_repo(repo_id=repo_id, repo_type=repo_type, exist_ok=True, token=token)
-        except Exception as e:
-            print(f"Note about repo creation (can usually be ignored): {e}")
-            continue
-
-        # Get list of all local prompt files in this directory
-        local_files = set()
-        for extension in [".yaml", ".yml", ".json", ".md", ".py"]:
-            local_files.update(directory.glob(f"*{extension}"))
-
-        if not local_files:
-            print(f"No YAML/JSON/MD/PY files found in {dir_name} directory")
-            continue
-
-        try:
-            # Get existing hub files to check for deletions
-            hub_files: Set[str] = {
+            hub_files = {
                 f
-                for f in api.list_repo_files(repo_id=repo_id, repo_type=repo_type, token=token)
-                if f.endswith((".yaml", ".yml", ".json", ".md", ".py"))
+                for f in api.list_repo_files(repo_id=repo_id, repo_type=repo_type)
+                if f.endswith((".yaml", ".yml", ".json"))
             }
-
-            # Upload local files
-            for local_file in local_files:
-                print(f"Uploading {local_file.name} from {str(local_file)} with repo_id {repo_id}...")
-                try:
-                    api.upload_file(
-                        path_or_fileobj=str(local_file),
-                        path_in_repo=local_file.name,
-                        repo_id=repo_id,
-                        repo_type=repo_type,
-                        token=token,
-                    )
-                    hub_files.discard(local_file.name)
-                except Exception as e:
-                    print(f"Error uploading {local_file.name}: {e}")
-                    continue
-
-            # Delete files on hub that exist on hub but not locally
-            for obsolete_file in hub_files:
-                print(f"Deleting {obsolete_file} from hub (no longer exists locally)...")
-                try:
-                    api.delete_file(
-                        path_in_repo=obsolete_file,
-                        repo_id=repo_id,
-                        repo_type=repo_type,
-                        token=token,
-                    )
-                except Exception as e:
-                    print(f"Error deleting {obsolete_file}: {e}")
-                    continue
-
-            print(f"\nSynced {len(local_files)} files to {repo_id}")
-            if hub_files:
-                print(f"Deleted {len(hub_files)} obsolete files from hub")
-            print(f"View repository at: https://huggingface.co/{repo_id}")
-
         except Exception as e:
-            print(f"Error processing directory {dir_name}: {e}")
+            print(f"Error accessing repo {repo_id}: {e}")
             continue
 
+        # Process local files
+        for local_file in local_files:
+            try:
+                # Load and standardize through library
+                template = PromptTemplateLoader.from_local(path=local_file, populator="double_brace")
 
-def has_model_prompts_tag(directory: Path) -> bool:
-    """Check if README.md in directory has model-prompts tag.
-    This enables us to sync the test data to the Hub as a model repo as opposed to the default dataset repo if the README.md contains the tag."""
-    readme_path = directory / "README.md"
-    if not readme_path.exists():
-        return False
+                # Save standardized version locally
+                standardized_path = directory / f"{local_file.stem}_standardized{local_file.suffix}"
+                template.save_to_local(standardized_path)
+
+                # Compare standardized with original
+                if not files_are_equivalent(local_file, standardized_path):
+                    print(f"Warning: {local_file.name} was modified during standardization")
+                    # Skip confirmation if force flag is set
+                    if force or input("Update local file? [y/N]: ").lower() == "y":
+                        standardized_path.replace(local_file)
+                else:
+                    standardized_path.unlink()  # Remove if identical
+
+                # Upload to hub
+                template.save_to_hub(
+                    repo_id=repo_id,
+                    filename=local_file.name,
+                    repo_type=repo_type,
+                    token=token,
+                    create_repo=True,
+                    exist_ok=True,
+                )
+                print(f"Synced {local_file.name}")
+
+            except Exception as e:
+                print(f"Error processing {local_file}: {e}")
+                continue
+
+        # Delete files that exist on hub but not locally
+        obsolete_files = hub_files - {f.name for f in local_files}
+        for obsolete_file in obsolete_files:
+            try:
+                api.delete_file(
+                    path_in_repo=obsolete_file,
+                    repo_id=repo_id,
+                    repo_type=repo_type,
+                    token=token,
+                )
+                print(f"Deleted {obsolete_file} from hub, because it was not present in local directory")
+            except Exception as e:
+                print(f"Error deleting {obsolete_file}: {e}")
+
+        print(f"View repository at: https://huggingface.co/{repo_id}")
+
+
+def files_are_equivalent(file1: Path, file2: Path) -> bool:
+    """Compare two YAML/JSON files, ignoring formatting differences."""
+
+    def load_file(path: Path) -> dict:
+        with open(path) as f:
+            return yaml.safe_load(f) if path.suffix in [".yaml", ".yml"] else json.load(f)
 
     try:
-        # Read the README file
-        content = readme_path.read_text()
-
-        # Check if there's a YAML front matter
-        if not content.startswith("---"):
-            return False
-
-        # Extract YAML front matter
-        yaml_content = content.split("---")[1]
-        metadata = yaml.safe_load(yaml_content)
-
-        # Check if tags exist and if model-prompts is in tags
-        return isinstance(metadata.get("tags"), list) and "model-prompts" in metadata["tags"]
+        return load_file(file1) == load_file(file2)
     except Exception:
         return False
 
 
 if __name__ == "__main__":
-    sync_test_files()
+    parser = argparse.ArgumentParser(description="Sync local test data to the Hub")
+    parser.add_argument("--force", action="store_true", help="Skip confirmation prompts for local file updates")
+    args = parser.parse_args()
+
+    sync_test_files(force=args.force)

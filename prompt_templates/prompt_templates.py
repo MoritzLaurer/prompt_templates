@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING, Any, Dict, List, Literal, Match, Optional, Set
 
 import jinja2
 import yaml
-from huggingface_hub import HfApi
+from huggingface_hub import HfApi, metadata_update
 from huggingface_hub.hf_api import CommitInfo
+from huggingface_hub.repocard import RepoCard
 from huggingface_hub.utils import RepositoryNotFoundError
 from jinja2 import Environment, meta
 
@@ -53,8 +54,8 @@ class BasePromptTemplate(ABC):
             metadata: Optional metadata about the prompt template
             client_parameters: Optional parameters for LLM client configuration (e.g., temperature, model)
             custom_data: Optional custom data which does not fit into the other categories
-            populator: Optional template populator type
-            jinja2_security_level: Security level for Jinja2 populator
+            populator: Optional template populator type. Choose from Literal["double_brace", "single_brace", "jinja2"]
+            jinja2_security_level: Security level for Jinja2 populator. Choose from Literal["strict", "standard", "relaxed"]
 
         Raises:
             TypeError: If input types don't match expected types
@@ -197,13 +198,14 @@ class BasePromptTemplate(ABC):
         if format == "yaml":
             file_content = yaml.dump(content, sort_keys=False)
         else:
-            file_content = json.dumps(content, indent=2)
+            file_content = json.dumps(content, indent=2, ensure_ascii=False)
 
         # Upload to Hub
         api = HfApi(token=token)
 
         # Create repository if requested
         if create_repo:
+            # Create repository
             api.create_repo(
                 repo_id=repo_id,
                 repo_type=repo_type,
@@ -212,12 +214,49 @@ class BasePromptTemplate(ABC):
                 exist_ok=exist_ok,
                 resource_group_id=resource_group_id,
             )
+
+            # Create and upload repocard
+            repocard_text = (
+                "---\n"
+                "library_name: prompt-templates\n"
+                "tags:\n"
+                "- prompts\n"
+                "- prompt-templates\n"
+                "---\n"
+                "This repository was created with the `prompt-templates` library and contains\n"
+                "prompt templates in the `Files` tab.\n"
+                "For easily reusing these templates, see the [prompt-templates documentation](https://github.com/MoritzLaurer/prompt-templates)."
+            )
+            card = RepoCard(repocard_text)
+            card.push_to_hub(
+                repo_id=repo_id,
+                repo_type=repo_type,
+                token=token,
+                commit_message="Create repo card with prompt-templates library",
+                create_pr=create_pr,
+                parent_commit=parent_commit,
+            )
         else:
             # Check if repo exists to provide better error message
             try:
                 api.repo_info(repo_id=repo_id, repo_type=repo_type)
             except RepositoryNotFoundError as e:
                 raise ValueError(f"Repository {repo_id} does not exist. Set create_repo=True to create it.") from e
+
+        if not create_repo:
+            # Update repo metadata to make prompt templates discoverable on the HF Hub
+            metadata_update(
+                repo_id=repo_id,
+                metadata={"library_name": "prompt-templates", "tags": ["prompts", "prompt-templates"]},
+                repo_type=repo_type,
+                overwrite=False,
+                token=token,
+                commit_message=commit_message or "Update repo metadata with prompt-templates library",
+                commit_description=commit_description,
+                revision=revision,
+                create_pr=create_pr,
+                parent_commit=parent_commit,
+            )
 
         # Upload file
         return api.upload_file(
@@ -295,8 +334,8 @@ class BasePromptTemplate(ABC):
             with open(path, "w") as f:
                 yaml.dump(content, f, sort_keys=False)
         else:
-            with open(path, "w") as f:
-                json.dump(content, f, indent=2)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(content, f, indent=2, ensure_ascii=False)
 
     def display(self, format: Literal["json", "yaml"] = "json") -> None:
         """Display the prompt configuration in the specified format.

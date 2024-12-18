@@ -61,6 +61,8 @@ class PromptTemplateLoader:
 
         Args:
             path (Union[str, Path]): Path to the YAML file containing the prompt template
+            populator (Optional[PopulatorType], optional): The populator type to use among Literal["double_brace", "single_brace", "jinja2"]. Defaults to None.
+            jinja2_security_level (Literal["strict", "standard", "relaxed"], optional): The security level for the Jinja2 populator. Defaults to "standard".
 
         Returns:
             Union[TextPromptTemplate, ChatPromptTemplate]: The loaded template instance
@@ -137,6 +139,9 @@ class PromptTemplateLoader:
                 ['dataset', 'model', 'space']. Defaults to "dataset"
             revision (Optional[str], optional): Git revision to download from.
                 Can be a branch name, tag, or commit hash. Defaults to None
+            populator (Optional[PopulatorType], optional): The populator type to use among Literal["double_brace", "single_brace", "jinja2"]. Defaults to None.
+            jinja2_security_level (Literal["strict", "standard", "relaxed"], optional): The security level for the Jinja2 populator. Defaults to "standard".
+
 
         Returns:
             Union[TextPromptTemplate, ChatPromptTemplate]: The loaded template instance

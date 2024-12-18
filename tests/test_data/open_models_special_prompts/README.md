@@ -3,7 +3,6 @@ license: mit
 library_name: prompt-templates
 tags:
 - prompts
-- model-prompts
 ---
 
 ## Sharing special prompts of open-weight models
