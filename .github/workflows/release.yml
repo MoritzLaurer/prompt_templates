@@ -94,18 +94,18 @@ jobs:
         
       - name: Generate Release Notes
         id: changelog
-        uses: mikepenz/release-changelog-builder-action@v4
+        uses: mikepenz/release-changelog-builder-action@v5
         with:
-          configuration: ".github/changelog-config.json"
-          commitMode: true
-          ignorePreReleases: false
+          #configuration: ".github/changelog-config.json"
+          mode: "HYBRID"
+          #ignorePreReleases: false
           owner: "MoritzLaurer"
           repo: "prompt_templates"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ env.CURRENT_VERSION }}"  # Use current version
           body: ${{steps.changelog.outputs.changelog}}

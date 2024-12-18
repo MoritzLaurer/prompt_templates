@@ -3,22 +3,22 @@
       {
         "title": "## 🚀 Features",
         "labels": ["feature", "enhancement"],
-        "commits": ["feat\\(.*\\):", "feat:"]
+        "commits": ["^feat:"]
       },
       {
         "title": "## ⚠️ Breaking Changes",
         "labels": ["breaking"],
-        "commits": ["^BREAKING[ -]CHANGE:"]
+        "commits": ["^BREAKING CHANGE:"]
       },
       {
         "title": "## 🐛 Bug Fixes",
         "labels": ["fix", "bug"],
-        "commits": ["fix\\(.*\\):", "fix:"]
+        "commits": ["^fix:"]
       },
       {
         "title": "## 📝 Documentation",
         "labels": ["documentation", "docs"],
-        "commits": ["docs:"]
+        "commits": ["^docs:"]
       },
       {
         "title": "## ⚡ Performance",
@@ -60,7 +60,9 @@
       "ignore"
     ],
     "sort": "ASC",
-    "template": "${{CHANGES}}\n\n## 📦 Full Changelog\n\n${{UNCATEGORIZED}}\n\nFor a complete list of changes, see the [full diff](${{RELEASE_DIFF}})",
+    "template": "${{CATEGORIZED_CHANGES}}\n\n${{UNCATEGORIZED}}\n\nFor a complete list of changes, see the [full diff](${{RELEASE_DIFF}})",
+    "pr_template": "- ${{TITLE}} (#${{NUMBER}})",
     "commit_template": "- ${{SUBJECT}}",
-    "empty_template": "No changes in this category"
+    "empty_template": "No changes in this category",
+    "categories_title": false
 }
