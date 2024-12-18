@@ -1,0 +1,87 @@
+:root {
+  --md-primary-fg-color: #2d3748;
+  --md-primary-fg-color--light: #4a5568;
+  --md-primary-fg-color--dark: #1a202c;
+  --md-accent-fg-color: #6366f1;
+}
+
+/* Dark mode adjustments */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #12141c;
+  --md-primary-fg-color--light: #1a1b24;
+  --md-primary-fg-color--dark: #0d0e14;
+  --md-default-bg-color: #1e2029;
+  --md-header-bg-color: #12141c;
+  --md-footer-bg-color: #12141c;
+  --md-typeset-color: rgba(255, 255, 255, 0.87);
+  --md-default-fg-color: rgba(255, 255, 255, 0.87);
+  --md-default-fg-color--light: rgba(255, 255, 255, 0.87);
+}
+
+/* Basic styling */
+.md-typeset h2 {
+  font-weight: 600;
+  border-bottom: 1px solid rgba(0,0,0,.1);
+  padding-bottom: 0.5em;
+}
+
+.md-typeset .md-button {
+  border-radius: 0.5rem;
+  padding: 0.625em 1.25em;
+}
+
+.highlight {
+  background: rgba(0,0,0,.05);
+  border-radius: 0.5rem;
+}
+
+/* Navigation styling */
+.md-nav {
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.md-nav__link--active {
+  font-weight: 600;
+  color: var(--md-accent-fg-color) !important;
+}
+
+/* Links */
+.md-typeset a {
+  color: var(--md-accent-fg-color);
+  text-decoration: underline;
+}
+
+.md-typeset a:hover {
+  color: var(--md-accent-fg-color--light);
+}
+
+/* Responsive improvements */
+@media screen and (max-width: 76.1875em) {
+  .md-nav--primary {
+    background-color: var(--md-default-bg-color);
+  }
+  
+  .md-nav__link {
+    padding: 0.4rem 0;
+  }
+}
+
+/* Table responsiveness */
+.md-typeset table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Image responsiveness */
+.md-typeset img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Fix dark mode navigation issue where header text becomes dark and hard to see
+after clicking back and forth between pages*/
+[data-md-color-scheme="slate"] .md-nav__item--active > .md-nav__link {
+  color: var(--md-accent-fg-color) !important;
+}
