@@ -15,3 +15,5 @@ prompt:
       - education
     version: "0.0.1"
     author: "Guido van Bossum"
+  client_parameters: {}
+  custom_data: {}

@@ -1,5 +1,5 @@
 prompt:
-  template: 
+  template:
     - role: user
       content: |-
         You are a helpful assistant in evaluating the quality of the outputs for a given instruction.
@@ -15,15 +15,13 @@ prompt:
         # Output (b):
         {{response_b}}
         # Which is better, Output (a) or Output (b)? Your response should be either “Output (a)” or “Output (b)”:
-      
   template_variables:
     - question
     - response_a
     - response_b
-
-  metadata: 
-   source: Appendix A.5, https://arxiv.org/pdf/2410.12784
-   description: This prompt is used in the JudgeBench paper to evaluate the quality of the outputs for a given instruction.
-  
+  metadata:
+    source: Appendix A.5, https://arxiv.org/pdf/2410.12784
+    description: This prompt is used in the JudgeBench paper to evaluate the quality of the outputs for a given instruction.
   client_parameters:
-     temperature: 0
+    temperature: 0
+  custom_data: {}

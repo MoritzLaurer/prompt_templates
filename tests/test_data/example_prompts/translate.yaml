@@ -8,8 +8,10 @@ prompt:
   metadata:
     name: "Simple Translator"
     description: "A simple translation prompt for illustrating the standard prompt YAML format"
-    tags: 
+    tags:
       - translation
       - multilinguality
     version: "0.0.1"
     author: "Guy van Babel"
+  client_parameters: {}
+  custom_data: {}

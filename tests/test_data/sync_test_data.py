@@ -18,6 +18,7 @@ from prompt_templates import PromptTemplateLoader
 
 
 MODEL_REPOS = ["open_models_special_prompts"]
+JINJA2_PROMPTS = ["translate_jinja2"]
 
 
 # Load token from .env file
@@ -73,7 +74,8 @@ def sync_test_files(force: bool = False):
         for local_file in local_files:
             try:
                 # Load and standardize through library
-                template = PromptTemplateLoader.from_local(path=local_file, populator="double_brace")
+                populator = "jinja2" if local_file.stem in JINJA2_PROMPTS else "double_brace"
+                template = PromptTemplateLoader.from_local(path=local_file, populator=populator)
 
                 # Save standardized version locally
                 standardized_path = directory / f"{local_file.stem}_standardized{local_file.suffix}"

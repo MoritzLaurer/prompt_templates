@@ -1,13 +1,15 @@
 prompt:
   template:
     - role: user
-      content: 
+      content:
         - type: image_url
           image_url:
             url: "{{image_url}}"
         - type: text
           text: "Please detect and label all objects in the following image and mark their positions."
   template_variables:
-      - image_url  
+    - image_url
   metadata:
     model: https://huggingface.co/collections/OpenGVLab/internvl-20-667d3961ab5eb12c7ed1463e
+  client_parameters: {}
+  custom_data: {}

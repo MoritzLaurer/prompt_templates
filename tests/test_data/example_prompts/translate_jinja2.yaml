@@ -3,7 +3,7 @@ prompt:
     - role: "system"
       content: |-
         You are an expert translator who can translate English text to {{ languages }}.
-        
+
         Here are some example translations:
         {% for example in few_shot_examples %}
         {{ example.source_lang }}: "{{ example.source_text }}" translates to {{ example.target_lang }}: "{{ example.target_text }}"
@@ -19,22 +19,24 @@ prompt:
     - languages  # str e.g. "German, French, Chinese"
     - few_shot_examples  # List[Dict[str, str]] e.g. [{"source_lang": "English", "target_lang": "German", "source_text": "Hello", "target_text": "Hallo"}]
     - strictly_faithful_translation  # bool
-  template_variables_example:
-    languages: "German, French, Chinese"
-    few_shot_examples:
-      - source_lang: "English"
-        target_lang: "German"
-        source_text: "Good morning, how are you?"
-        target_text: "Guten Morgen, wie geht es dir?"
-      - source_lang: "English"
-        target_lang: "Chinese"
-        source_text: "The weather is beautiful today"
-        target_text: "今天天气很好"
-    strictly_faithful_translation: true
   metadata:
     name: "Translator"
     description: "A system prompt with few-shot examples for translating English to different languages"
-    tags: 
+    tags:
       - translation
     version: "0.0.1"
     author: "Mao Zedong"
+  client_parameters: {}
+  custom_data:
+    template_variables_example:
+      languages: "German, French, Chinese"
+      few_shot_examples:
+        - source_lang: "English"
+          target_lang: "German"
+          source_text: "Good morning, how are you?"
+          target_text: "Guten Morgen, wie geht es dir?"
+        - source_lang: "English"
+          target_lang: "Chinese"
+          source_text: "The weather is beautiful today"
+          target_text: "今天天气很好"
+      strictly_faithful_translation: true

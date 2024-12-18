@@ -1,3 +1,4 @@
+import io
 import json
 import logging
 import re
@@ -15,6 +16,7 @@ from jinja2 import Environment, meta
 
 from .constants import Jinja2SecurityLevel, PopulatorType
 from .populated_prompt import PopulatedPrompt
+from .utils import create_yaml_handler, format_template_content
 
 
 if TYPE_CHECKING:
@@ -106,6 +108,8 @@ class BasePromptTemplate(ABC):
         filename: str,
         repo_type: str = "dataset",
         format: Optional[Literal["yaml", "json"]] = None,
+        yaml_library: str = "ruamel",
+        prettify_template: bool = True,
         token: Optional[str] = None,
         create_repo: bool = False,
         private: bool = False,
@@ -127,6 +131,10 @@ class BasePromptTemplate(ABC):
             commit_message: Custom commit message. If None, uses default message
             create_repo: Whether to create the repository if it doesn't exist. Defaults to False
             format: Output format ("yaml" or "json"). If None, inferred from filename extension
+            yaml_library: YAML library to use ("ruamel" or "pyyaml"). Defaults to "ruamel" for better formatting and format preservation.
+            prettify_template: If true format the template content with literal block scalars, i.e. "|-" in yaml.
+                This makes the string behave like a Python '''...''' block to make strings easier to read and edit.
+                Defaults to True
             private: Whether to create a private repository. Defaults to False
             exist_ok: Don't error if repo already exists. Defaults to True
             resource_group_id: Optional resource group ID to associate with the repository
@@ -167,25 +175,31 @@ class BasePromptTemplate(ABC):
             'https://huggingface.co/MoritzLaurer/example_prompts_test/blob/main/code_teacher_test.yaml'
         """
 
-        # Infer format from file extension if not provided
+        # Handle format inference and validation
         if format is None:
-            if filename.endswith(".yaml") or filename.endswith(".yml"):
+            # Infer format from extension
+            extension = Path(filename).suffix.lstrip(".")
+            if extension in ["yaml", "yml"]:
                 format = "yaml"
-            elif filename.endswith(".json"):
+            elif extension == "json":
                 format = "json"
             else:
                 format = "yaml"  # default if no extension
                 filename += ".yaml"
+        else:
+            # Validate explicitly provided format matches file extension
+            if format not in ["yaml", "yml", "json"]:
+                raise ValueError(f"Unsupported format: {format}")
 
-        # Validate if format was explicitly provided
-        elif not filename.endswith(f".{format}"):
-            raise ValueError(
-                f"File extension '{filename}' does not match the format '{format}'. "
-                f"Expected extension: '.{format}'."
-            )
+            file_extension = Path(filename).suffix.lstrip(".")
+            if format in ["yaml", "yml"] and file_extension in ["yaml", "yml"]:
+                # Both are YAML variants, so they match
+                pass
+            elif format != file_extension:
+                raise ValueError(f"Provided format '{format}' does not match file extension '{filename}'")
 
         # Convert template to the specified format
-        content = {
+        data = {
             "prompt": {
                 "template": self.template,
                 "template_variables": self.template_variables,
@@ -195,17 +209,23 @@ class BasePromptTemplate(ABC):
             }
         }
 
-        if format == "yaml":
-            file_content = yaml.dump(content, sort_keys=False)
-        else:
-            file_content = json.dumps(content, indent=2, ensure_ascii=False)
+        if prettify_template:
+            data = format_template_content(data)
+
+        if format == "json":
+            content = json.dumps(data, indent=2, ensure_ascii=False)
+            content_bytes = content.encode("utf-8")
+        else:  # yaml
+            yaml_handler = create_yaml_handler(yaml_library)
+            string_stream = io.StringIO()
+            yaml_handler.dump(data, string_stream)
+            content = string_stream.getvalue()
+            content_bytes = content.encode("utf-8")
 
         # Upload to Hub
         api = HfApi(token=token)
 
-        # Create repository if requested
         if create_repo:
-            # Create repository
             api.create_repo(
                 repo_id=repo_id,
                 repo_type=repo_type,
@@ -215,7 +235,6 @@ class BasePromptTemplate(ABC):
                 resource_group_id=resource_group_id,
             )
 
-            # Create and upload repocard
             repocard_text = (
                 "---\n"
                 "library_name: prompt-templates\n"
@@ -260,7 +279,7 @@ class BasePromptTemplate(ABC):
 
         # Upload file
         return api.upload_file(
-            path_or_fileobj=file_content.encode(),
+            path_or_fileobj=io.BytesIO(content_bytes),
             path_in_repo=filename,
             repo_id=repo_id,
             repo_type=repo_type,
@@ -272,13 +291,22 @@ class BasePromptTemplate(ABC):
             parent_commit=parent_commit,
         )
 
-    def save_to_local(self, path: Union[str, Path], format: Optional[Literal["yaml", "json"]] = None) -> None:
+    def save_to_local(
+        self,
+        path: Union[str, Path],
+        format: Optional[Literal["yaml", "json"]] = None,
+        yaml_library: str = "ruamel",
+        prettify_template: bool = True,
+    ) -> None:
         """Save the prompt template as a local YAML or JSON file.
 
         Args:
             path: Path where to save the file. Can be string or Path object
-            format: Output format ("yaml" or "json"). If None, inferred from file extension.
-                If no extension is provided, defaults to "yaml"
+            format: Output format ("yaml" or "json"). If None, inferred from filename
+            yaml_library: YAML library to use ("ruamel" or "pyyaml"). Defaults to "ruamel" for better formatting and format preservation.
+            prettify_template: If true format the template content with literal block scalars, i.e. "|-" in yaml.
+                This makes the string behave like a Python '''...''' block to make strings easier to read and edit.
+                Defaults to True
 
         Examples:
             >>> from prompt_templates import ChatPromptTemplate
@@ -303,7 +331,27 @@ class BasePromptTemplate(ABC):
         """
 
         path = Path(path)
-        content = {
+        # Handle format inference and validation
+        file_extension = path.suffix.lstrip(".")
+        if format is None:
+            # Infer format from extension
+            if file_extension in ["yaml", "yml"]:
+                format = "yaml"
+            elif file_extension == "json":
+                format = "json"
+            else:
+                raise ValueError(f"Cannot infer format from file extension: {path.suffix}")
+        else:
+            # Validate explicitly provided format matches file extension
+            if format not in ["yaml", "yml", "json"]:
+                raise ValueError(f"Unsupported format: {format}")
+            if format in ["yaml", "yml"] and file_extension in ["yaml", "yml"]:
+                # Both are YAML variants, so they match
+                pass
+            elif format != file_extension:
+                raise ValueError(f"Provided format '{format}' does not match file extension '{path.suffix}'")
+
+        data = {
             "prompt": {
                 "template": self.template,
                 "template_variables": self.template_variables,
@@ -313,29 +361,18 @@ class BasePromptTemplate(ABC):
             }
         }
 
-        # Infer format from file extension if not provided
-        if format is None:
-            if path.suffix == ".yaml" or path.suffix == ".yml":
-                format = "yaml"
-            elif path.suffix == ".json":
-                format = "json"
-            else:
-                format = "yaml"  # default if no extension
-                path = path.with_suffix(".yaml")
+        if prettify_template:
+            data = format_template_content(data)
 
-        # Validate if format was explicitly provided
-        elif path.suffix and path.suffix != f".{format}":
-            raise ValueError(
-                f"File extension '{path.suffix}' does not match the format '{format}'. "
-                f"Expected extension: '.{format}'."
-            )
-
-        if format == "yaml":
-            with open(path, "w") as f:
-                yaml.dump(content, f, sort_keys=False)
-        else:
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(content, f, indent=2, ensure_ascii=False)
+        with open(path, "w", encoding="utf-8") as f:
+            if format == "json":
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            else:  # yaml
+                yaml_handler = create_yaml_handler(yaml_library)
+                if yaml_library == "pyyaml":
+                    yaml_handler.dump(data, f, sort_keys=False, allow_unicode=True)
+                else:  # ruamel
+                    yaml_handler.dump(data, f)
 
     def display(self, format: Literal["json", "yaml"] = "json") -> None:
         """Display the prompt configuration in the specified format.
@@ -468,18 +505,34 @@ class BasePromptTemplate(ABC):
             raise ValueError("\n".join(error_parts))
 
     def _get_variables_in_template(self) -> Set[str]:
-        """Get all variables used as placeholders in the template string or messages dictionary.
-
-        Returns:
-            Set of variable names used as placeholders in the template
-        """
+        """Get all variables used as placeholders in the template string or messages dictionary."""
         variables_in_template = set()
         if isinstance(self.template, str):
             variables_in_template = self.populator.get_variable_names(self.template)
         elif isinstance(self.template, list) and any(isinstance(item, dict) for item in self.template):
             for message in self.template:
-                variables_in_template.update(self.populator.get_variable_names(message["content"]))
+                content = message["content"]
+                if isinstance(content, str):
+                    variables_in_template.update(self.populator.get_variable_names(content))
+                elif isinstance(content, list):
+                    # Recursively search for variables in nested content
+                    for item in content:
+                        variables_in_template.update(self._get_variables_in_dict(item))
         return variables_in_template
+
+    def _get_variables_in_dict(self, d: Dict[str, Any]) -> Set[str]:
+        """Recursively extract variables from a dictionary structure."""
+        variables = set()
+        for value in d.values():
+            if isinstance(value, str):
+                variables.update(self.populator.get_variable_names(value))
+            elif isinstance(value, dict):
+                variables.update(self._get_variables_in_dict(value))
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, dict):
+                        variables.update(self._get_variables_in_dict(item))
+        return variables
 
     def _detect_double_brace_syntax(self) -> bool:
         """Detect if the template uses simple {{var}} syntax without Jinja2 features."""
@@ -536,8 +589,19 @@ class BasePromptTemplate(ABC):
                         f"Each message must have a 'role' and a 'content' key. Missing keys: {missing_keys}"
                     )
 
-                if not isinstance(msg["role"], str) or not isinstance(msg["content"], str):
-                    raise ValueError("Message 'role' and 'content' must be strings")
+                if not isinstance(msg["role"], str):
+                    raise ValueError("Message 'role' must be a string")
+
+                # Allow content to be either a string or a list of content items
+                if not isinstance(msg["content"], (str, list)):
+                    raise ValueError("Message 'content' must be either a string or a list")
+
+                # If content is a list, validate each item
+                # Can be list if passing images to OpenAI API
+                if isinstance(msg["content"], list):
+                    for item in msg["content"]:
+                        if not isinstance(item, dict):
+                            raise ValueError("Each content item in a list must be a dictionary")
 
                 if msg["role"] not in {"system", "user", "assistant"}:
                     raise ValueError(f"Invalid role '{msg['role']}'. Must be one of: system, user, assistant")

@@ -7,13 +7,13 @@ import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Set, Union
 
-import yaml
 from huggingface_hub import HfApi, hf_hub_download
 from huggingface_hub.utils import validate_repo_id
 
 from .constants import VALID_PROMPT_EXTENSIONS, PopulatorType
 from .prompt_templates import ChatPromptTemplate, TextPromptTemplate
 from .tools import Tool
+from .utils import create_yaml_handler
 
 
 logger = logging.getLogger(__name__)
@@ -56,6 +56,7 @@ class PromptTemplateLoader:
         path: Union[str, Path],
         populator: Optional[PopulatorType] = None,
         jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
+        yaml_library: str = "ruamel",
     ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
         """Load a prompt template from a local YAML file.
 
@@ -63,6 +64,7 @@ class PromptTemplateLoader:
             path (Union[str, Path]): Path to the YAML file containing the prompt template
             populator (Optional[PopulatorType], optional): The populator type to use among Literal["double_brace", "single_brace", "jinja2"]. Defaults to None.
             jinja2_security_level (Literal["strict", "standard", "relaxed"], optional): The security level for the Jinja2 populator. Defaults to "standard".
+            yaml_library (str, optional): The YAML library to use ("ruamel" or "pyyaml"). Defaults to "ruamel".
 
         Returns:
             Union[TextPromptTemplate, ChatPromptTemplate]: The loaded template instance
@@ -103,10 +105,14 @@ class PromptTemplateLoader:
         if path.suffix not in VALID_PROMPT_EXTENSIONS:
             raise ValueError(f"Template file must be a .yaml or .yml file, got: {path}")
 
+        yaml = create_yaml_handler(yaml_library)
         try:
             with open(path, "r") as file:
-                prompt_file = yaml.safe_load(file)
-        except yaml.YAMLError as e:
+                if yaml_library == "ruamel":
+                    prompt_file = yaml.load(file)
+                else:
+                    prompt_file = yaml.safe_load(file)
+        except Exception as e:
             raise ValueError(
                 f"Failed to parse '{path}' as a valid YAML file. "
                 f"Please ensure the file is properly formatted.\n"
@@ -126,6 +132,7 @@ class PromptTemplateLoader:
         revision: Optional[str] = None,
         populator: Optional[PopulatorType] = None,
         jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
+        yaml_library: str = "ruamel",
     ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
         """Load a prompt template from the Hugging Face Hub.
 
@@ -141,6 +148,7 @@ class PromptTemplateLoader:
                 Can be a branch name, tag, or commit hash. Defaults to None
             populator (Optional[PopulatorType], optional): The populator type to use among Literal["double_brace", "single_brace", "jinja2"]. Defaults to None.
             jinja2_security_level (Literal["strict", "standard", "relaxed"], optional): The security level for the Jinja2 populator. Defaults to "standard".
+            yaml_library (str, optional): The YAML library to use ("ruamel" or "pyyaml"). Defaults to "ruamel".
 
 
         Returns:
@@ -200,10 +208,14 @@ class PromptTemplateLoader:
         except Exception as e:
             raise FileNotFoundError(f"Failed to download template from Hub: {str(e)}") from e
 
+        yaml = create_yaml_handler(yaml_library)
         try:
             with open(file_path, "r") as file:
-                prompt_file = yaml.safe_load(file)
-        except yaml.YAMLError as e:
+                if yaml_library == "ruamel":
+                    prompt_file = yaml.load(file)
+                else:
+                    prompt_file = yaml.safe_load(file)
+        except Exception as e:
             raise ValueError(
                 f"Failed to parse '{filename}' as a valid YAML file. "
                 f"Please ensure the file is properly formatted.\n"
@@ -267,7 +279,7 @@ class PromptTemplateLoader:
         custom_data = {
             k: v
             for k, v in prompt_data.items()
-            if k not in ["template", "template_variables", "metadata", "client_parameters"]
+            if k not in ["template", "template_variables", "metadata", "client_parameters", "custom_data"]
         }
 
         # Determine template type and create appropriate instance
