@@ -97,7 +97,7 @@ print(response.choices[0].message.content[:100], "...")
 # <antThinking>Creating a tic-tac-toe game in Python is a good candidate for an artifact. It's a self- ...
 ```
 
-If you use an LLM client that expects a format different to the OpenAI messages standard, you can easily reformat the prompt for this client.
+If you use an LLM client that expects a format different to the OpenAI messages standard, you can easily reformat the prompt for this client. For example with Anthropic:
 
 ```python
 from anthropic import Anthropic
@@ -114,6 +114,8 @@ response = client.messages.create(
 print(response.content[0].text[:100], "...")
 # Sure, I can create a tic-tac-toe game for you in Python. Here's a simple implementation: ...
 ```
+
+Or with the [Google Gen AI SDK]([pip install google-genai](https://github.com/googleapis/python-genai)) for Gemini 2.0
 
 ```python
 from google import genai
