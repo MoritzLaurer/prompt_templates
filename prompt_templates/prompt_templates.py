@@ -833,7 +833,7 @@ class ChatPromptTemplate(BasePromptTemplate):
         [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]
 
         >>> # By default, the populated prompt is in the OpenAI messages format, as it is adopted by many open-source libraries
-        >>> # You can convert to formats used by other LLM clients like Anthropic like this:
+        >>> # You can convert to formats used by other LLM clients like Anthropic's or Google Gemini's like this:
         >>> messages_anthropic = prompt.format_for_client("anthropic")
         >>> print(messages_anthropic)
         {'system': 'You are a coding assistant who explains concepts clearly and provides short examples.', 'messages': [{'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]}
@@ -941,7 +941,7 @@ class ChatPromptTemplate(BasePromptTemplate):
             {'system': 'You are a coding assistant who explains concepts clearly and provides short examples.', 'messages': [{'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]}
 
         Args:
-            client (str): The client format to use ('openai', 'anthropic'). Defaults to 'openai'.
+            client (str): The client format to use ('openai', 'anthropic', 'google'). Defaults to 'openai'.
             **user_provided_variables: The variables to fill into the prompt template. For example, if your template
                 expects variables like 'name' and 'age', pass them as keyword arguments.
 

@@ -115,6 +115,23 @@ If you use an LLM client that expects a format different to the OpenAI messages 
 Sure, I can create a tic-tac-toe game for you in Python. Here's a simple implementation: ...
 ```
 
+```python
+>>> from google import genai
+>>> from google.genai import types
+
+>>> messages_google = messages.format_for_client(client="google")
+
+>>> client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+
+>>> response = client.models.generate_content(
+...     model='gemini-2.0-flash-exp',
+...     contents=messages_google["contents"],
+...     config=types.GenerateContentConfig(
+...         system_instruction=messages_google["system_instruction"],
+...     )
+... )
+>>> print(response.text[:100], "...")
+```
 
 #### 6. Create your own prompt templates
 

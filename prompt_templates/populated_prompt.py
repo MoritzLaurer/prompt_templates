@@ -1,8 +1,8 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator, List, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 
-SUPPORTED_CLIENT_FORMATS = ["openai", "anthropic"]  # TODO: add more clients
+SUPPORTED_CLIENT_FORMATS = ["openai", "anthropic", "google"]  # TODO: add more clients
 
 
 @dataclass
@@ -21,9 +21,8 @@ class PopulatedPrompt:
         _content: The populated prompt content, either as a string or a list of message dictionaries.
 
     Access:
-        You can access individual elements of the content using standard indexing or key access:
-        - For list-based content: `prompt[index]`
-        - For dict-based content: `prompt[key]`
+        You can access individual elements of a PopulatedPrompt instance using standard indexing or key access,
+        i.e. you can use `prompt[index]` or `prompt[key]`.
 
     Examples:
         >>> from prompt_templates import PromptTemplateLoader
@@ -93,7 +92,7 @@ class PopulatedPrompt:
         """Format the chat messages prompt for a specific LLM client.
 
         Args:
-            client: The client format to use ('openai', 'anthropic'). Defaults to 'openai'.
+            client: The client format to use ('openai', 'anthropic', 'google'). Defaults to 'openai'.
 
         Returns:
             PopulatedPrompt: A new PopulatedPrompt instance with content formatted for the specified client.
@@ -119,12 +118,18 @@ class PopulatedPrompt:
             >>> anthropic_prompt = prompt.format_for_client("anthropic")
             >>> print(anthropic_prompt)
             {'system': 'You are a coding assistant who explains concepts clearly and provides short examples.', 'messages': [{'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]}
+            >>> # Convert to Google (Gemini) format
+            >>> google_prompt = prompt.format_for_client("google")
+            >>> print(google_prompt)
+            {'system_instruction': 'You are a coding assistant who explains concepts clearly and provides short examples.', 'contents': 'Explain what list comprehension is in Python.'}
         """
         if isinstance(self._content, list) and any(isinstance(item, dict) for item in self._content):
             if client == "openai":
                 return PopulatedPrompt(self._content)
             elif client == "anthropic":
                 return self._format_for_anthropic()
+            elif client == "google":
+                return self._format_for_google()
             else:
                 raise ValueError(
                     f"Unsupported client format: {client}. Supported formats are: {SUPPORTED_CLIENT_FORMATS}"
@@ -154,3 +159,41 @@ class PopulatedPrompt:
             "messages": [msg for msg in self._content if msg["role"] != "system"],
         }
         return PopulatedPrompt(messages_anthropic)
+
+    def _format_for_google(self) -> "PopulatedPrompt":
+        """Format messages for the [Google GenAI SDK](https://github.com/googleapis/python-genai) client's generate_content method.
+
+        Converts OpenAI-style messages to Google Gemini's expected format by:
+        1. Extracting the system message (if any) into a top-level 'system_instruction' key
+        2. Moving all non-system messages into a 'contents' list of messages as `Part` objects
+        (or a single string if there's only one message).
+
+        Returns:
+            PopulatedPrompt: A new PopulatedPrompt instance with content formatted for Google Gemini.
+        """
+        from google.genai import types
+
+        if not isinstance(self._content, list):
+            raise TypeError("Cannot format non-list content for Google Gemini")
+
+        system_instruction: Optional[str] = None
+        contents: List[types.Content] = []
+
+        for msg in self._content:
+            if msg["role"] == "system":
+                system_instruction = msg["content"]
+            elif msg["role"] == "user":
+                contents.append(types.Content(parts=[types.Part.from_text(msg["content"])], role="user"))
+            elif msg["role"] == "assistant":
+                contents.append(types.Content(parts=[types.Part.from_text(msg["content"])], role="model"))
+            else:
+                raise ValueError(f"Unsupported role: {msg['role']}")
+
+        if len(contents) == 1:
+            contents = contents[0].parts[0].text
+
+        messages_google = {
+            "system_instruction": system_instruction,
+            "contents": contents,
+        }
+        return PopulatedPrompt(messages_google)

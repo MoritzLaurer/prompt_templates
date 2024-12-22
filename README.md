@@ -115,6 +115,24 @@ print(response.content[0].text[:100], "...")
 # Sure, I can create a tic-tac-toe game for you in Python. Here's a simple implementation: ...
 ```
 
+```python
+from google import genai
+from google.genai import types
+
+messages_gemini = messages.format_for_client(client="gemini")
+
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+
+response = client.models.generate_content(
+    model='gemini-2.0-flash-exp',
+    contents=messages_gemini["contents"],
+    config=types.GenerateContentConfig(
+        system_instruction=messages_gemini["system_instruction"],
+    )
+)
+print(response.text[:100], "...")
+```
+
 
 #### 6. Create your own prompt templates
 
