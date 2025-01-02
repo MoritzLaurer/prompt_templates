@@ -1,0 +1,52 @@
+prompt:
+  template: |-
+    Your task is to check if a specific Span is accurate to the Evidence.
+    Generate 'Accurate' if the Span is accurate when verified according to the Evidence or when there is nothing to verify in the Span.
+    Generate 'Inaccurate' if the Span is inaccurate (contradicts the evidence), or cannot be verified.
+
+    **Query**:
+
+    {{user_request}}
+
+    **End of Query**
+
+    **Evidence**
+
+    {{context_document}}
+
+    **End of Evidence**
+
+    **Response**:
+
+    {{response}}
+
+    **End of Response**
+
+
+    You are currently verifying **Span {{ix+1}}** from the Response.
+    **Span {{ix+1}}**:
+
+    {{span}}
+
+    **End of Span {{ix+1}}**
+
+
+    Is Span {{ix+1}} accurate or inaccurate when verified according to the Evidence? Point to where in the evidence justifies your answer.
+  template_variables:
+    - user_request
+    - context_document
+    - response
+    - ix
+    - span
+  metadata:
+    description: "An evaluation prompt from the paper 'The FACTS Grounding Leaderboard: Benchmarking LLMs’ Ability to Ground
+      Responses to Long-Form Input' by Google DeepMind.\n    The prompt was copied from the evaluation_prompts.csv file from
+      Kaggle.\n    This specific prompt elicits a binary accurate/non-accurate classifier on a span level."
+    evaluation_method: span_level
+    tags:
+      - fact-checking
+    version: 1.0.0
+    author: Google DeepMind
+    source: https://www.kaggle.com/datasets/deepmind/FACTS-grounding-examples?resource=download&select=evaluation_prompts.csv
+  client_parameters: {}
+  custom_data: {}

@@ -1,0 +1,23 @@
+prompt:
+  template: |-
+    Your task is to verify whether a given sentence is entailed by a given context or not. Answer only in YES or NO without any additional text. Do not try to avoid answering, or apologize, or give any answer that isn't simply YES or NO.
+
+    **Sentence**
+    {{json_dict["sentence"]}}
+
+    **Context**
+    {{json_dict["excerpt"]}}
+  template_variables:
+    - json_dict
+  metadata:
+    description: "An evaluation prompt from the paper 'The FACTS Grounding Leaderboard: Benchmarking LLMs’ Ability to Ground
+      Responses to Long-Form Input' by Google DeepMind.\n    The prompt was copied from the evaluation_prompts.csv file from
+      Kaggle.\n    This specific prompt elicits a binary entailment/non-entailment classifier. It requires a dict as input"
+    evaluation_method: json_with_double_check
+    tags:
+      - fact-checking
+    version: 1.0.0
+    author: Google DeepMind
+    source: https://www.kaggle.com/datasets/deepmind/FACTS-grounding-examples?resource=download&select=evaluation_prompts.csv
+  client_parameters: {}
+  custom_data: {}

@@ -1,0 +1,40 @@
+prompt:
+  template: |-
+    Your task is to check if the Response is accurate to the Evidence.
+    Generate 'Accurate' if the Response is accurate when verified according to the Evidence, or 'Inaccurate' if the Response is inaccurate (contradicts the evidence) or cannot be verified.
+
+    **Query**:
+
+    {{user_request}}
+
+    **End of Query**
+
+    **Evidence**
+
+    {{context_document}}
+
+    **End of Evidence**
+
+    **Response**:
+
+    {{response}}
+
+    **End of Response**
+
+    Let's think step-by-step.
+  template_variables:
+    - user_request
+    - context_document
+    - response
+  metadata:
+    description: "An evaluation prompt from the paper 'The FACTS Grounding Leaderboard: Benchmarking LLMs’ Ability to Ground
+      Responses to Long-Form Input' by Google DeepMind.\n    The prompt was copied from the evaluation_prompts.csv file from
+      Kaggle.\n    This specific prompt elicits a binary accurate/inaccurate classifier for the entire response."
+    evaluation_method: response_level
+    tags:
+      - fact-checking
+    version: 1.0.0
+    author: Google DeepMind
+    source: https://www.kaggle.com/datasets/deepmind/FACTS-grounding-examples?resource=download&select=evaluation_prompts.csv
+  client_parameters: {}
+  custom_data: {}

@@ -1,0 +1,52 @@
+prompt:
+  template: |-
+    Your task is to check if the Response is accurate to the Evidence.
+    Generate 'Accurate' if the Response is accurate when verified according to the Evidence, or 'Inaccurate' if the Response is inaccurate (contradicts the evidence) or cannot be verified.
+
+    **Query**:
+
+    {{user_request}}
+
+    **End of Query**
+
+    **Evidence**
+
+    {{context_document}}
+
+    **End of Evidence**
+
+    **Response**:
+
+    {{response}}
+
+    **End of Response**
+
+
+    Break down the Response into sentences and classify each one separately, then give the final answer: If even one of the sentences is inaccurate, then the Response is inaccurate.
+
+    For example, your output should be of this format:
+    Sentence 1: <Sentence 1>
+    Sentence 1 label: Accurate/Inaccurate (choose 1)
+    Sentence 2: <Sentence 2>
+    Sentence 2 label: Accurate/Inaccurate (choose 1)
+    Sentence 3: <Sentence 3>
+    Sentence 3 label: Accurate/Inaccurate (choose 1)
+    [...]
+    Final Answer: Accurate/Inaccurate (choose 1)
+  template_variables:
+    - user_request
+    - context_document
+    - response
+  metadata:
+    description: "An evaluation prompt from the paper 'The FACTS Grounding Leaderboard: Benchmarking LLMs’ Ability to Ground
+      Responses to Long-Form Input' by Google DeepMind.\n    The prompt was copied from the evaluation_prompts.csv file from
+      Kaggle.\n    This specific prompt elicits a binary accurate/non-accurate classifier for the entire response after generating
+      and classifying each sentence separately."
+    evaluation_method: implicit_span_level
+    tags:
+      - fact-checking
+    version: 1.0.0
+    author: Google DeepMind
+    source: https://www.kaggle.com/datasets/deepmind/FACTS-grounding-examples?resource=download&select=evaluation_prompts.csv
+  client_parameters: {}
+  custom_data: {}
