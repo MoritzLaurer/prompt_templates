@@ -45,23 +45,19 @@ class BasePromptTemplate(ABC):
         metadata: Optional[Dict[str, Any]] = None,
         client_parameters: Optional[Dict[str, Any]] = None,
         custom_data: Optional[Dict[str, Any]] = None,
-        populator: Optional[PopulatorType] = None,
+        populator: PopulatorType = "double_brace",
         jinja2_security_level: Jinja2SecurityLevel = "standard",
     ) -> None:
         """Initialize a prompt template.
 
         Args:
-            template: The template string or list of message dictionaries
-            template_variables: List of variables required by the template
-            metadata: Optional metadata about the prompt template
-            client_parameters: Optional parameters for LLM client configuration (e.g., temperature, model)
-            custom_data: Optional custom data which does not fit into the other categories
-            populator: Optional template populator type. Choose from Literal["double_brace", "single_brace", "jinja2"]
-            jinja2_security_level: Security level for Jinja2 populator. Choose from Literal["strict", "standard", "relaxed"]
-
-        Raises:
-            TypeError: If input types don't match expected types
-            ValueError: If template format is invalid
+            template: The template string or list of message dictionaries.
+            template_variables: List of variables used in the template.
+            metadata: Dictionary of metadata about the template.
+            client_parameters: Dictionary of parameters for the inference client (e.g., temperature, model).
+            custom_data: Dictionary of custom data which does not fit into the other categories.
+            populator: The populator to use. Choose from Literal["double_brace", "single_brace", "jinja2", "autodetect"]. Defaults to "autodetect".
+            jinja2_security_level: Security level for Jinja2 populator. Choose from Literal["strict", "standard", "relaxed"].Defaults to "standard".
         """
         # Type validation
         if template_variables is not None and not isinstance(template_variables, list):
@@ -73,18 +69,33 @@ class BasePromptTemplate(ABC):
         if custom_data is not None and not isinstance(custom_data, dict):
             raise TypeError(f"custom_data must be a dict, got {type(custom_data).__name__}")
 
-        # Format validation
-        self._validate_template_format(template)
-
         # Initialize attributes
         self.template = template
         self.template_variables = template_variables or []
         self.metadata = metadata or {}
         self.client_parameters = client_parameters or {}
         self.custom_data = custom_data or {}
+        self.populator = populator
+        self.jinja2_security_level = jinja2_security_level
 
-        # set up the template populator
-        self._set_up_populator(populator, jinja2_security_level)
+        # Validate template format
+        self._validate_template_format(self.template)
+
+        # Auto-detect populator syntax and handle populator selection
+        detected_populator = self._auto_detect_populator()
+
+        if self.populator == "autodetect":
+            if detected_populator is None:
+                raise ValueError("Could not auto-detect template syntax. Please specify populator type explicitly.")
+            self.populator = detected_populator
+        elif detected_populator is not None and detected_populator != self.populator:
+            logger.warning(
+                f"Template syntax appears to use '{detected_populator}' populator style, but populator='{self.populator}' was specified. "
+                "This mismatch might cause errors. Consider updating either the template syntax or the populator type."
+            )
+
+        # Create populator instance
+        self._create_populator_instance(self.populator, self.jinja2_security_level)
 
         # Validate that variables provided in template and template_variables are equal
         if self.template_variables:
@@ -113,7 +124,6 @@ class BasePromptTemplate(ABC):
         token: Optional[str] = None,
         create_repo: bool = False,
         private: bool = False,
-        exist_ok: bool = True,
         resource_group_id: Optional[str] = None,
         revision: Optional[str] = None,
         create_pr: bool = False,
@@ -136,7 +146,6 @@ class BasePromptTemplate(ABC):
                 This makes the string behave like a Python '''...''' block to make strings easier to read and edit.
                 Defaults to True
             private: Whether to create a private repository. Defaults to False
-            exist_ok: Don't error if repo already exists. Defaults to True
             resource_group_id: Optional resource group ID to associate with the repository
             revision: Optional branch/revision to push to. Defaults to main branch
             create_pr: Whether to create a Pull Request instead of pushing directly. Defaults to False
@@ -210,7 +219,7 @@ class BasePromptTemplate(ABC):
         }
 
         if prettify_template:
-            data = format_template_content(data)
+            data["prompt"]["template"] = format_template_content(data["prompt"]["template"])
 
         if format == "json":
             content = json.dumps(data, indent=2, ensure_ascii=False)
@@ -225,16 +234,30 @@ class BasePromptTemplate(ABC):
         # Upload to Hub
         api = HfApi(token=token)
 
-        if create_repo:
+        # Check if repo exists before attempting to create it to avoid overwriting repo card
+        try:
+            api.repo_info(repo_id=repo_id, repo_type=repo_type)
+            repo_exists = True
+        except RepositoryNotFoundError:
+            repo_exists = False
+
+        if create_repo and repo_exists:
+            logger.info(
+                f"You specified create_repo={create_repo}, but repository {repo_id} already exists. "
+                "Skipping repo creation."
+            )
+        elif not create_repo and not repo_exists:
+            raise ValueError(f"Repository {repo_id} does not exist. Set create_repo=True to create it.")
+        elif create_repo and not repo_exists:
+            logger.info(f"Creating/Updating HF Hub repository {repo_id}")
             api.create_repo(
                 repo_id=repo_id,
                 repo_type=repo_type,
                 token=token,
                 private=private,
-                exist_ok=exist_ok,
+                # exist_ok=exist_ok,  # not using this arg to avoid inconsistency
                 resource_group_id=resource_group_id,
             )
-
             repocard_text = (
                 "---\n"
                 "library_name: prompt-templates\n"
@@ -244,26 +267,20 @@ class BasePromptTemplate(ABC):
                 "---\n"
                 "This repository was created with the `prompt-templates` library and contains\n"
                 "prompt templates in the `Files` tab.\n"
-                "For easily reusing these templates, see the [prompt-templates documentation](https://github.com/MoritzLaurer/prompt-templates)."
+                "For easily reusing these templates, see the [documentation](https://github.com/MoritzLaurer/prompt-templates)."
             )
             card = RepoCard(repocard_text)
             card.push_to_hub(
                 repo_id=repo_id,
                 repo_type=repo_type,
                 token=token,
-                commit_message="Create repo card with prompt-templates library",
+                commit_message="Create/Update repo card with prompt-templates library",
                 create_pr=create_pr,
                 parent_commit=parent_commit,
             )
-        else:
-            # Check if repo exists to provide better error message
-            try:
-                api.repo_info(repo_id=repo_id, repo_type=repo_type)
-            except RepositoryNotFoundError as e:
-                raise ValueError(f"Repository {repo_id} does not exist. Set create_repo=True to create it.") from e
-
-        if not create_repo:
+        elif not create_repo and repo_exists:
             # Update repo metadata to make prompt templates discoverable on the HF Hub
+            logger.info(f"Updating HF Hub repository {repo_id} with prompt-templates library metadata.")
             metadata_update(
                 repo_id=repo_id,
                 metadata={"library_name": "prompt-templates", "tags": ["prompts", "prompt-templates"]},
@@ -278,6 +295,7 @@ class BasePromptTemplate(ABC):
             )
 
         # Upload file
+        logger.info(f"Uploading prompt template {filename} to HF Hub repository {repo_id}")
         return api.upload_file(
             path_or_fileobj=io.BytesIO(content_bytes),
             path_in_repo=filename,
@@ -362,17 +380,21 @@ class BasePromptTemplate(ABC):
         }
 
         if prettify_template:
-            data = format_template_content(data)
+            data["prompt"]["template"] = format_template_content(data["prompt"]["template"])
 
         with open(path, "w", encoding="utf-8") as f:
             if format == "json":
                 json.dump(data, f, indent=2, ensure_ascii=False)
             else:  # yaml
                 yaml_handler = create_yaml_handler(yaml_library)
-                if yaml_library == "pyyaml":
-                    yaml_handler.dump(data, f, sort_keys=False, allow_unicode=True)
-                else:  # ruamel
+                if yaml_library == "ruamel":
                     yaml_handler.dump(data, f)
+                elif yaml_library == "pyyaml":
+                    yaml_handler.dump(data, f, sort_keys=False, allow_unicode=True)
+                else:
+                    raise ValueError(
+                        f"Unknown yaml library: {yaml_library}. Valid options are: 'ruamel' (default) or 'pyyaml'."
+                    )
 
     def display(self, format: Literal["json", "yaml"] = "json") -> None:
         """Display the prompt configuration in the specified format.
@@ -424,7 +446,7 @@ class BasePromptTemplate(ABC):
         """Recursively fill placeholders in strings or nested structures like dicts or lists."""
         if isinstance(template_part, str):
             # fill placeholders in strings
-            return self.populator.populate(template_part, user_provided_variables)
+            return self.populator_instance.populate(template_part, user_provided_variables)
         elif isinstance(template_part, dict):
             # Recursively handle dictionaries
             return {
@@ -500,7 +522,7 @@ class BasePromptTemplate(ABC):
             template_extract = (
                 str(self.template)[:100] + "..." if len(str(self.template)) > 100 else str(self.template)
             )
-            error_parts.append(f"\nTemplate extract: {template_extract}")
+            error_parts.append(f"Template extract: {template_extract}")
 
             raise ValueError("\n".join(error_parts))
 
@@ -508,12 +530,12 @@ class BasePromptTemplate(ABC):
         """Get all variables used as placeholders in the template string or messages dictionary."""
         variables_in_template = set()
         if isinstance(self.template, str):
-            variables_in_template = self.populator.get_variable_names(self.template)
+            variables_in_template = self.populator_instance.get_variable_names(self.template)
         elif isinstance(self.template, list) and any(isinstance(item, dict) for item in self.template):
             for message in self.template:
                 content = message["content"]
                 if isinstance(content, str):
-                    variables_in_template.update(self.populator.get_variable_names(content))
+                    variables_in_template.update(self.populator_instance.get_variable_names(content))
                 elif isinstance(content, list):
                     # Recursively search for variables in nested content
                     for item in content:
@@ -525,7 +547,7 @@ class BasePromptTemplate(ABC):
         variables = set()
         for value in d.values():
             if isinstance(value, str):
-                variables.update(self.populator.get_variable_names(value))
+                variables.update(self.populator_instance.get_variable_names(value))
             elif isinstance(value, dict):
                 variables.update(self._get_variables_in_dict(value))
             elif isinstance(value, list):
@@ -540,12 +562,27 @@ class BasePromptTemplate(ABC):
         def contains_double_brace(text: str) -> bool:
             # Look for {{var}} pattern but exclude Jinja2-specific patterns
             basic_var = r"\{\{[^{}|.\[]+\}\}"  # Only match simple variables
+            # basic_var = r"\{\{([^{}]+)\}\}"
             return bool(re.search(basic_var, text))
 
         if isinstance(self.template, str):
             return contains_double_brace(self.template)
         elif isinstance(self.template, list) and any(isinstance(item, dict) for item in self.template):
             return any(contains_double_brace(message["content"]) for message in self.template)
+        return False
+
+    def _detect_single_brace_syntax(self) -> bool:
+        """Detect if the template uses simple {var} f-string-like syntax."""
+
+        def contains_single_brace(text: str) -> bool:
+            basic_var = r"\{[^{}|.\[]+\}"  # Only match simple variables
+            # basic_var = re.compile(r"\{([^{}]+)\}")
+            return bool(re.search(basic_var, text))
+
+        if isinstance(self.template, str):
+            return contains_single_brace(self.template)
+        elif isinstance(self.template, list) and any(isinstance(item, dict) for item in self.template):
+            return any(contains_single_brace(message["content"]) for message in self.template)
         return False
 
     def _detect_jinja2_syntax(self) -> bool:
@@ -606,48 +643,45 @@ class BasePromptTemplate(ABC):
                 if msg["role"] not in {"system", "user", "assistant"}:
                     raise ValueError(f"Invalid role '{msg['role']}'. Must be one of: system, user, assistant")
 
-    def _set_up_populator(
-        self, populator: Optional[PopulatorType], jinja2_security_level: Jinja2SecurityLevel
-    ) -> None:
-        """Set up the template populator based on specified type or auto-detection.
+    def _auto_detect_populator(self) -> Optional[PopulatorType]:
+        """Auto-detect the template syntax style.
+
+        Returns:
+            Optional[PopulatorType]: Detected populator type or None if no clear match
+        """
+        if self._detect_jinja2_syntax():
+            return "jinja2"
+        elif self._detect_double_brace_syntax():
+            return "double_brace"
+        elif self._detect_single_brace_syntax():
+            return "single_brace"
+        return None
+
+    def _create_populator_instance(self, populator: PopulatorType, jinja2_security_level: Jinja2SecurityLevel) -> None:
+        """Create populator instance.
 
         Args:
-            populator: Optional explicit populator type ('jinja2', 'double_brace', 'single_brace')
+            populator: Explicit populator type. Must be one of ('jinja2', 'double_brace', 'single_brace').
             jinja2_security_level: Security level for Jinja2 populator
 
         Raises:
             ValueError: If an unknown populator type is specified
         """
-        self.populator_type: PopulatorType
-        self.populator: TemplatePopulator
+        self.populator_instance: TemplatePopulator
 
         # Check and validate populator
-        if populator is not None:
+        if populator in ["jinja2", "double_brace", "single_brace"]:
             # Use explicitly specified populator
             if populator == "jinja2":
-                self.populator_type = "jinja2"
-                self.populator = Jinja2TemplatePopulator(security_level=jinja2_security_level)
+                self.populator_instance = Jinja2TemplatePopulator(security_level=jinja2_security_level)
             elif populator == "double_brace":
-                self.populator_type = "double_brace"
-                self.populator = DoubleBracePopulator()
+                self.populator_instance = DoubleBracePopulator()
             elif populator == "single_brace":
-                self.populator_type = "single_brace"
-                self.populator = SingleBracePopulator()
-            else:
-                raise ValueError(
-                    f"Unknown populator type: {populator}. Valid options are: double_brace, single_brace, jinja2"
-                )
+                self.populator_instance = SingleBracePopulator()
         else:
-            # Auto-detect populator
-            if self._detect_jinja2_syntax():
-                self.populator_type = "jinja2"
-                self.populator = Jinja2TemplatePopulator(security_level=jinja2_security_level)
-            elif self._detect_double_brace_syntax():
-                self.populator_type = "double_brace"
-                self.populator = DoubleBracePopulator()
-            else:
-                self.populator_type = "single_brace"
-                self.populator = SingleBracePopulator()
+            raise ValueError(
+                f"Unknown populator type: {populator}. Valid options are: double_brace, single_brace, jinja2"
+            )
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, BasePromptTemplate):
@@ -659,7 +693,7 @@ class BasePromptTemplate(ABC):
             and self.metadata == other.metadata
             and self.client_parameters == other.client_parameters
             and self.custom_data == other.custom_data
-            and self.populator_type == other.populator_type
+            and self.populator == other.populator
         )
 
 
@@ -684,7 +718,7 @@ class TextPromptTemplate(BasePromptTemplate):
         ...     metadata=metadata
         ... )
         >>> print(prompt_template)
-        TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{text}}', template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A simple translation prompt for illustrating the standard prompt YAML format', 'tags': ['translation', 'multilinguality'], 'version': '0.0.1', 'author': 'Some Person'}, custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopulator object at 0x...>)
+        TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{text}}', template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A simple translation prompt for illustrating the standard prompt YAML format', 'tags': ['translation', 'multilinguality'], 'version': '0.0.1', 'author': 'Some Person'}, custom_data={}, populator='double_brace', populator_instance=<prompt_templates.prompt_templates.DoubleBracePopulator object at 0x...>)
 
         >>> # Inspect template attributes
         >>> prompt_template.template
@@ -719,7 +753,7 @@ class TextPromptTemplate(BasePromptTemplate):
         metadata: Optional[Dict[str, Any]] = None,
         client_parameters: Optional[Dict[str, Any]] = None,
         custom_data: Optional[Dict[str, Any]] = None,
-        populator: Optional[PopulatorType] = None,
+        populator: PopulatorType = "double_brace",
         jinja2_security_level: Jinja2SecurityLevel = "standard",
     ) -> None:
         super().__init__(
@@ -817,7 +851,7 @@ class ChatPromptTemplate(BasePromptTemplate):
         ...     metadata=metadata
         ... )
         >>> print(prompt_template)
-        ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopula...)
+        ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator='double_brace', populator_instance=<prompt_templates.prompt_templates.DoubleBracePopula...)
         >>> # Inspect template attributes
         >>> prompt_template.template
         [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
@@ -866,7 +900,7 @@ class ChatPromptTemplate(BasePromptTemplate):
         metadata: Optional[Dict[str, Any]] = None,
         client_parameters: Optional[Dict[str, Any]] = None,
         custom_data: Optional[Dict[str, Any]] = None,
-        populator: Optional[PopulatorType] = None,
+        populator: PopulatorType = "double_brace",
         jinja2_security_level: Jinja2SecurityLevel = "standard",
     ) -> None:
         super().__init__(

@@ -54,7 +54,7 @@ class PromptTemplateLoader:
     def from_local(
         cls,
         path: Union[str, Path],
-        populator: Optional[PopulatorType] = None,
+        populator: PopulatorType = "double_brace",
         jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
         yaml_library: str = "ruamel",
     ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
@@ -62,7 +62,7 @@ class PromptTemplateLoader:
 
         Args:
             path (Union[str, Path]): Path to the YAML file containing the prompt template
-            populator (Optional[PopulatorType], optional): The populator type to use among Literal["double_brace", "single_brace", "jinja2"]. Defaults to None.
+            populator ([PopulatorType]): The populator type to use among Literal["double_brace", "single_brace", "jinja2", "autodetect"]. Defaults to "double_brace".
             jinja2_security_level (Literal["strict", "standard", "relaxed"], optional): The security level for the Jinja2 populator. Defaults to "standard".
             yaml_library (str, optional): The YAML library to use ("ruamel" or "pyyaml"). Defaults to "ruamel".
 
@@ -130,7 +130,7 @@ class PromptTemplateLoader:
         filename: str,
         repo_type: str = "dataset",
         revision: Optional[str] = None,
-        populator: Optional[PopulatorType] = None,
+        populator: PopulatorType = "double_brace",
         jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
         yaml_library: str = "ruamel",
     ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
@@ -146,7 +146,7 @@ class PromptTemplateLoader:
                 ['dataset', 'model', 'space']. Defaults to "dataset"
             revision (Optional[str], optional): Git revision to download from.
                 Can be a branch name, tag, or commit hash. Defaults to None
-            populator (Optional[PopulatorType], optional): The populator type to use among Literal["double_brace", "single_brace", "jinja2"]. Defaults to None.
+            populator ([PopulatorType]): The populator type to use among Literal["double_brace", "single_brace", "jinja2", "autodetect"]. Defaults to "double_brace".
             jinja2_security_level (Literal["strict", "standard", "relaxed"], optional): The security level for the Jinja2 populator. Defaults to "standard".
             yaml_library (str, optional): The YAML library to use ("ruamel" or "pyyaml"). Defaults to "ruamel".
 
@@ -229,7 +229,7 @@ class PromptTemplateLoader:
     @staticmethod
     def _load_template_from_yaml(
         prompt_file: Dict[str, Any],
-        populator: Optional[PopulatorType] = None,
+        populator: PopulatorType = "double_brace",
         jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
     ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
         """Internal method to load a template from parsed YAML data.
