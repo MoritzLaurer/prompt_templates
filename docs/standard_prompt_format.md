@@ -33,6 +33,8 @@ prompt:
 
 **Naming convention:** We call a file a *"prompt template"*, when it has placeholders ({{...}}) for dynamically populating the template similar to an f-string. This makes files more useful and reusable by others for different use-cases. Once the placeholders in the template are populated with specific variables, we call it a *"prompt"*. 
 
+**Templating:** [Jinja2](https://jinja.palletsprojects.com/en/stable/) is the default templating engine for populating the variables in the template. 
+
 The following example illustrates how the prompt template becomes a prompt. 
 
 ```python

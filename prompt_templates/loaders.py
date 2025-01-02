@@ -34,7 +34,7 @@ class PromptTemplateLoader:
         ...     filename="code_teacher.yaml"
         ... )
         >>> print(prompt_template)
-        ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopula...)
+        ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator='jinja2')
         >>> prompt_template.template
         [{'role': 'system', 'content': 'You are a coding assistant...'}, ...]
         >>> prompt_template.metadata["name"]
@@ -43,7 +43,7 @@ class PromptTemplateLoader:
         Load a template from a local file:
         >>> prompt_template = PromptTemplateLoader.from_local("./tests/test_data/translate.yaml")
         >>> print(template)
-        TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopula...)
+        TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator='jinja2')
         >>> prompt_template.template
         'Translate the following text to {language}:\\n{text}'
         >>> prompt_template.template_variables
@@ -54,7 +54,7 @@ class PromptTemplateLoader:
     def from_local(
         cls,
         path: Union[str, Path],
-        populator: PopulatorType = "double_brace",
+        populator: PopulatorType = "jinja2",
         jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
         yaml_library: str = "ruamel",
     ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
@@ -62,7 +62,7 @@ class PromptTemplateLoader:
 
         Args:
             path (Union[str, Path]): Path to the YAML file containing the prompt template
-            populator ([PopulatorType]): The populator type to use among Literal["double_brace", "single_brace", "jinja2", "autodetect"]. Defaults to "double_brace".
+            populator ([PopulatorType]): The populator type to use among Literal["double_brace_regex", "single_brace_regex", "jinja2"]. Defaults to "jinja2".
             jinja2_security_level (Literal["strict", "standard", "relaxed"], optional): The security level for the Jinja2 populator. Defaults to "standard".
             yaml_library (str, optional): The YAML library to use ("ruamel" or "pyyaml"). Defaults to "ruamel".
 
@@ -79,7 +79,7 @@ class PromptTemplateLoader:
             >>> from prompt_templates import PromptTemplateLoader
             >>> prompt_template = PromptTemplateLoader.from_local("./tests/test_data/translate.yaml")
             >>> print(prompt_template)
-            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopula...)
+            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator='jinja2')
             >>> prompt_template.template
             'Translate the following text to {language}:\\n{text}'
             >>> prompt_template.template_variables
@@ -90,7 +90,7 @@ class PromptTemplateLoader:
             Download a chat prompt template:
             >>> prompt_template = PromptTemplateLoader.from_local("./tests/test_data/code_teacher.yaml")
             >>> print(prompt_template)
-            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}], template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopula...)
+            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}], template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator='jinja2')
             >>> prompt_template.template
             [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
             >>> prompt_template.template_variables
@@ -130,7 +130,7 @@ class PromptTemplateLoader:
         filename: str,
         repo_type: str = "dataset",
         revision: Optional[str] = None,
-        populator: PopulatorType = "double_brace",
+        populator: PopulatorType = "jinja2",
         jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
         yaml_library: str = "ruamel",
     ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
@@ -146,7 +146,7 @@ class PromptTemplateLoader:
                 ['dataset', 'model', 'space']. Defaults to "dataset"
             revision (Optional[str], optional): Git revision to download from.
                 Can be a branch name, tag, or commit hash. Defaults to None
-            populator ([PopulatorType]): The populator type to use among Literal["double_brace", "single_brace", "jinja2", "autodetect"]. Defaults to "double_brace".
+            populator ([PopulatorType]): The populator type to use among Literal["double_brace_regex", "single_brace_regex", "jinja2"]. Defaults to "jinja2".
             jinja2_security_level (Literal["strict", "standard", "relaxed"], optional): The security level for the Jinja2 populator. Defaults to "standard".
             yaml_library (str, optional): The YAML library to use ("ruamel" or "pyyaml"). Defaults to "ruamel".
 
@@ -168,7 +168,7 @@ class PromptTemplateLoader:
             ...     filename="translate.yaml"
             ... )
             >>> print(prompt_template)
-            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopula...)
+            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., custom_data={}, populator='jinja2')
             >>> prompt_template.template
             'Translate the following text to {language}:\\n{text}'
             >>> prompt_template.template_variables
@@ -182,7 +182,7 @@ class PromptTemplateLoader:
             ...     filename="code_teacher.yaml"
             ... )
             >>> print(prompt_template)
-            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}], template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopula...)
+            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}], template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator='jinja2')
             >>> prompt_template.template
             [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
             >>> prompt_template.template_variables
@@ -229,7 +229,7 @@ class PromptTemplateLoader:
     @staticmethod
     def _load_template_from_yaml(
         prompt_file: Dict[str, Any],
-        populator: PopulatorType = "double_brace",
+        populator: PopulatorType = "jinja2",
         jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
     ) -> Union[TextPromptTemplate, ChatPromptTemplate]:
         """Internal method to load a template from parsed YAML data.

@@ -13,6 +13,7 @@ from huggingface_hub.hf_api import CommitInfo
 from huggingface_hub.repocard import RepoCard
 from huggingface_hub.utils import RepositoryNotFoundError
 from jinja2 import Environment, meta
+from jinja2.sandbox import SandboxedEnvironment
 
 from .constants import Jinja2SecurityLevel, PopulatorType
 from .populated_prompt import PopulatedPrompt
@@ -45,7 +46,7 @@ class BasePromptTemplate(ABC):
         metadata: Optional[Dict[str, Any]] = None,
         client_parameters: Optional[Dict[str, Any]] = None,
         custom_data: Optional[Dict[str, Any]] = None,
-        populator: PopulatorType = "double_brace",
+        populator: PopulatorType = "jinja2",
         jinja2_security_level: Jinja2SecurityLevel = "standard",
     ) -> None:
         """Initialize a prompt template.
@@ -56,8 +57,8 @@ class BasePromptTemplate(ABC):
             metadata: Dictionary of metadata about the template.
             client_parameters: Dictionary of parameters for the inference client (e.g., temperature, model).
             custom_data: Dictionary of custom data which does not fit into the other categories.
-            populator: The populator to use. Choose from Literal["double_brace", "single_brace", "jinja2", "autodetect"]. Defaults to "autodetect".
-            jinja2_security_level: Security level for Jinja2 populator. Choose from Literal["strict", "standard", "relaxed"].Defaults to "standard".
+            populator: The populator to use. Choose from Literal["jinja2", "double_brace_regex", "single_brace_regex"]. Defaults to "jinja2".
+            jinja2_security_level: Security level for Jinja2 populator. Choose from Literal["strict", "standard", "relaxed"]. Defaults to "standard".
         """
         # Type validation
         if template_variables is not None and not isinstance(template_variables, list):
@@ -80,19 +81,6 @@ class BasePromptTemplate(ABC):
 
         # Validate template format
         self._validate_template_format(self.template)
-
-        # Auto-detect populator syntax and handle populator selection
-        detected_populator = self._auto_detect_populator()
-
-        if self.populator == "autodetect":
-            if detected_populator is None:
-                raise ValueError("Could not auto-detect template syntax. Please specify populator type explicitly.")
-            self.populator = detected_populator
-        elif detected_populator is not None and detected_populator != self.populator:
-            logger.warning(
-                f"Template syntax appears to use '{detected_populator}' populator style, but populator='{self.populator}' was specified. "
-                "This mismatch might cause errors. Consider updating either the template syntax or the populator type."
-            )
 
         # Create populator instance
         self._create_populator_instance(self.populator, self.jinja2_security_level)
@@ -436,9 +424,12 @@ class BasePromptTemplate(ABC):
         return self.__dict__[key]
 
     def __repr__(self) -> str:
+        # Filter out private attributes (those starting with _)
+        public_attrs = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
+
         attributes = ", ".join(
             f"{key}={repr(value)[:50]}..." if len(repr(value)) > 50 else f"{key}={repr(value)}"
-            for key, value in self.__dict__.items()
+            for key, value in public_attrs.items()
         )
         return f"{self.__class__.__name__}({attributes})"
 
@@ -446,7 +437,7 @@ class BasePromptTemplate(ABC):
         """Recursively fill placeholders in strings or nested structures like dicts or lists."""
         if isinstance(template_part, str):
             # fill placeholders in strings
-            return self.populator_instance.populate(template_part, user_provided_variables)
+            return self._populator_instance.populate(template_part, user_provided_variables)
         elif isinstance(template_part, dict):
             # Recursively handle dictionaries
             return {
@@ -530,12 +521,12 @@ class BasePromptTemplate(ABC):
         """Get all variables used as placeholders in the template string or messages dictionary."""
         variables_in_template = set()
         if isinstance(self.template, str):
-            variables_in_template = self.populator_instance.get_variable_names(self.template)
+            variables_in_template = self._populator_instance.get_variable_names(self.template)
         elif isinstance(self.template, list) and any(isinstance(item, dict) for item in self.template):
             for message in self.template:
                 content = message["content"]
                 if isinstance(content, str):
-                    variables_in_template.update(self.populator_instance.get_variable_names(content))
+                    variables_in_template.update(self._populator_instance.get_variable_names(content))
                 elif isinstance(content, list):
                     # Recursively search for variables in nested content
                     for item in content:
@@ -547,7 +538,7 @@ class BasePromptTemplate(ABC):
         variables = set()
         for value in d.values():
             if isinstance(value, str):
-                variables.update(self.populator_instance.get_variable_names(value))
+                variables.update(self._populator_instance.get_variable_names(value))
             elif isinstance(value, dict):
                 variables.update(self._get_variables_in_dict(value))
             elif isinstance(value, list):
@@ -555,62 +546,6 @@ class BasePromptTemplate(ABC):
                     if isinstance(item, dict):
                         variables.update(self._get_variables_in_dict(item))
         return variables
-
-    def _detect_double_brace_syntax(self) -> bool:
-        """Detect if the template uses simple {{var}} syntax without Jinja2 features."""
-
-        def contains_double_brace(text: str) -> bool:
-            # Look for {{var}} pattern but exclude Jinja2-specific patterns
-            basic_var = r"\{\{[^{}|.\[]+\}\}"  # Only match simple variables
-            # basic_var = r"\{\{([^{}]+)\}\}"
-            return bool(re.search(basic_var, text))
-
-        if isinstance(self.template, str):
-            return contains_double_brace(self.template)
-        elif isinstance(self.template, list) and any(isinstance(item, dict) for item in self.template):
-            return any(contains_double_brace(message["content"]) for message in self.template)
-        return False
-
-    def _detect_single_brace_syntax(self) -> bool:
-        """Detect if the template uses simple {var} f-string-like syntax."""
-
-        def contains_single_brace(text: str) -> bool:
-            basic_var = r"\{[^{}|.\[]+\}"  # Only match simple variables
-            # basic_var = re.compile(r"\{([^{}]+)\}")
-            return bool(re.search(basic_var, text))
-
-        if isinstance(self.template, str):
-            return contains_single_brace(self.template)
-        elif isinstance(self.template, list) and any(isinstance(item, dict) for item in self.template):
-            return any(contains_single_brace(message["content"]) for message in self.template)
-        return False
-
-    def _detect_jinja2_syntax(self) -> bool:
-        """Detect if the template uses Jinja2 syntax.
-
-        Looks for Jinja2-specific patterns:
-        - {% statement %}    - Control structures
-        - {# comment #}     - Comments
-        - {{ var|filter }}  - Filters
-        - {{ var.attr }}    - Attribute access
-        - {{ var['key'] }}  - Dictionary access
-        """
-
-        def contains_jinja2(text: str) -> bool:
-            patterns = [
-                r"{%\s*.*?\s*%}",  # Statements
-                r"{#\s*.*?\s*#}",  # Comments
-                r"{{\s*.*?\|.*?}}",  # Filters
-                r"{{\s*.*?\..*?}}",  # Attribute access
-                r"{{\s*.*?\[.*?\].*?}}",  # Dictionary access
-            ]
-            return any(re.search(pattern, text) for pattern in patterns)
-
-        if isinstance(self.template, str):
-            return contains_jinja2(self.template)
-        elif isinstance(self.template, list) and any(isinstance(item, dict) for item in self.template):
-            return any(contains_jinja2(message["content"]) for message in self.template)
-        return False
 
     def _validate_template_format(self, template: Union[str, List[Dict[str, Any]]]) -> None:
         """Validate the format of the template at initialization."""
@@ -643,44 +578,27 @@ class BasePromptTemplate(ABC):
                 if msg["role"] not in {"system", "user", "assistant"}:
                     raise ValueError(f"Invalid role '{msg['role']}'. Must be one of: system, user, assistant")
 
-    def _auto_detect_populator(self) -> Optional[PopulatorType]:
-        """Auto-detect the template syntax style.
-
-        Returns:
-            Optional[PopulatorType]: Detected populator type or None if no clear match
-        """
-        if self._detect_jinja2_syntax():
-            return "jinja2"
-        elif self._detect_double_brace_syntax():
-            return "double_brace"
-        elif self._detect_single_brace_syntax():
-            return "single_brace"
-        return None
-
     def _create_populator_instance(self, populator: PopulatorType, jinja2_security_level: Jinja2SecurityLevel) -> None:
         """Create populator instance.
 
         Args:
-            populator: Explicit populator type. Must be one of ('jinja2', 'double_brace', 'single_brace').
+            populator: Explicit populator type. Must be one of ('jinja2', 'double_brace_regex', 'single_brace_regex').
             jinja2_security_level: Security level for Jinja2 populator
 
         Raises:
             ValueError: If an unknown populator type is specified
         """
-        self.populator_instance: TemplatePopulator
+        self._populator_instance: TemplatePopulator
 
-        # Check and validate populator
-        if populator in ["jinja2", "double_brace", "single_brace"]:
-            # Use explicitly specified populator
-            if populator == "jinja2":
-                self.populator_instance = Jinja2TemplatePopulator(security_level=jinja2_security_level)
-            elif populator == "double_brace":
-                self.populator_instance = DoubleBracePopulator()
-            elif populator == "single_brace":
-                self.populator_instance = SingleBracePopulator()
+        if populator == "jinja2":
+            self._populator_instance = Jinja2TemplatePopulator(security_level=jinja2_security_level)
+        elif populator == "double_brace_regex":
+            self._populator_instance = DoubleBracePopulator()
+        elif populator == "single_brace_regex":
+            self._populator_instance = SingleBracePopulator()
         else:
             raise ValueError(
-                f"Unknown populator type: {populator}. Valid options are: double_brace, single_brace, jinja2"
+                f"Unknown populator type: {populator}. Valid options are: jinja2, double_brace_regex, single_brace_regex"
             )
 
     def __eq__(self, other: Any) -> bool:
@@ -718,7 +636,7 @@ class TextPromptTemplate(BasePromptTemplate):
         ...     metadata=metadata
         ... )
         >>> print(prompt_template)
-        TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{text}}', template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A simple translation prompt for illustrating the standard prompt YAML format', 'tags': ['translation', 'multilinguality'], 'version': '0.0.1', 'author': 'Some Person'}, custom_data={}, populator='double_brace', populator_instance=<prompt_templates.prompt_templates.DoubleBracePopulator object at 0x...>)
+        TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{text}}', template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A simple translation prompt for illustrating the standard prompt YAML format', 'tags': ['translation', 'multilinguality'], 'version': '0.0.1', 'author': 'Some Person'}, custom_data={}, populator='jinja2')
 
         >>> # Inspect template attributes
         >>> prompt_template.template
@@ -753,7 +671,7 @@ class TextPromptTemplate(BasePromptTemplate):
         metadata: Optional[Dict[str, Any]] = None,
         client_parameters: Optional[Dict[str, Any]] = None,
         custom_data: Optional[Dict[str, Any]] = None,
-        populator: PopulatorType = "double_brace",
+        populator: PopulatorType = "jinja2",
         jinja2_security_level: Jinja2SecurityLevel = "standard",
     ) -> None:
         super().__init__(
@@ -851,7 +769,7 @@ class ChatPromptTemplate(BasePromptTemplate):
         ...     metadata=metadata
         ... )
         >>> print(prompt_template)
-        ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator='double_brace', populator_instance=<prompt_templates.prompt_templates.DoubleBracePopula...)
+        ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator='jinja2')
         >>> # Inspect template attributes
         >>> prompt_template.template
         [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
@@ -900,7 +818,7 @@ class ChatPromptTemplate(BasePromptTemplate):
         metadata: Optional[Dict[str, Any]] = None,
         client_parameters: Optional[Dict[str, Any]] = None,
         custom_data: Optional[Dict[str, Any]] = None,
-        populator: PopulatorType = "double_brace",
+        populator: PopulatorType = "jinja2",
         jinja2_security_level: Jinja2SecurityLevel = "standard",
     ) -> None:
         super().__init__(
@@ -1108,7 +1026,7 @@ class Jinja2TemplatePopulator(TemplatePopulator):
 
         if security_level == "strict":
             # Most restrictive settings
-            self.env = Environment(
+            self.env = SandboxedEnvironment(
                 undefined=jinja2.StrictUndefined,
                 trim_blocks=True,
                 lstrip_blocks=True,
@@ -1120,12 +1038,12 @@ class Jinja2TemplatePopulator(TemplatePopulator):
             self.env.globals.clear()
 
             # Minimal set of features
-            safe_filters = {"lower", "upper", "title", "safe"}
+            safe_filters = {"lower", "upper", "title"}
             safe_tests = {"defined", "undefined", "none"}
 
         elif security_level == "standard":
             # Balanced settings
-            self.env = Environment(
+            self.env = SandboxedEnvironment(
                 undefined=jinja2.StrictUndefined,
                 trim_blocks=True,
                 lstrip_blocks=True,
@@ -1160,8 +1078,7 @@ class Jinja2TemplatePopulator(TemplatePopulator):
             }
             safe_tests = {"defined", "undefined", "none", "number", "string", "sequence"}
 
-        else:  # relaxed
-            # Default Jinja2 behavior
+        elif security_level == "relaxed":
             self.env = Environment(
                 undefined=jinja2.StrictUndefined,
                 trim_blocks=True,
@@ -1172,6 +1089,8 @@ class Jinja2TemplatePopulator(TemplatePopulator):
             )
             # Keep all default globals and features
             return
+        else:
+            raise ValueError(f"Invalid security level: {security_level}")
 
         # Apply security settings for strict and standard modes
         self._apply_security_settings(safe_filters, safe_tests)
