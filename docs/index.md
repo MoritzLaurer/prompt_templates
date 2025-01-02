@@ -74,6 +74,7 @@ PopulatedPrompt([{'role': 'system', 'content': '<artifacts_info>\nThe assistant 
 #### 5. Use the populated template with any LLM client
 
 ```python
+>>> #!pip install openai
 >>> from openai import OpenAI
 >>> import os
 >>> client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
@@ -100,6 +101,7 @@ Here's a simple text-based Tic-Tac-Toe game in Python. This code allows two play
 If you use an LLM client that expects a format different to the OpenAI messages standard, you can easily reformat the prompt for this client. For example with Anthropic:
 
 ```python
+>>> #! pip install anthropic
 >>> from anthropic import Anthropic
 
 >>> messages_anthropic = messages.format_for_client(client="anthropic")
@@ -115,9 +117,10 @@ If you use an LLM client that expects a format different to the OpenAI messages 
 Sure, I can create a tic-tac-toe game for you in Python. Here's a simple implementation: ...
 ```
 
-Or with the [Google Gen AI SDK]([pip install google-genai](https://github.com/googleapis/python-genai)) for Gemini 2.0
+Or with the [Google Gen AI SDK](https://github.com/googleapis/python-genai) for Gemini 2.0
 
 ```python
+>>> #!pip install google-genai
 >>> from google import genai
 >>> from google.genai import types
 
@@ -171,8 +174,4 @@ You can then store your prompt template locally or share it on the HF Hub.
 >>> prompt_template.save_to_hub(repo_id="MoritzLaurer/example_prompts_test", filename="code_teacher_test.yaml", create_repo=True)
 CommitInfo(commit_url='https://huggingface.co/MoritzLaurer/example_prompts_test/commit/4cefd2c94f684f9bf419382f96b36692cd175e84', commit_message='Upload prompt template code_teacher_test.yaml', commit_description='', oid='4cefd2c94f684f9bf419382f96b36692cd175e84', pr_url=None, repo_url=RepoUrl('https://huggingface.co/MoritzLaurer/example_prompts_test', endpoint='https://huggingface.co', repo_type='dataset', repo_id='MoritzLaurer/example_prompts_test'), pr_revision=None, pr_num=None)
 ```
-
-
-## TODO
-- [ ] many things ...
 

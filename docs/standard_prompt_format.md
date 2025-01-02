@@ -124,7 +124,7 @@ prompt_template_langchain = prompt_template.to_langchain_template()
 
 
 
-### Existing prompt template repos:
+### Existing prompt template repos
 - [LangChain Hub](https://smith.langchain.com/hub) for prompts (main hub is proprietary. See the old public oss [repo](https://github.com/hwchase17/langchain-hub), using JSON or YAML, with {...} for template variables)
 - [LangGraph Templates](https://blog.langchain.dev/launching-langgraph-templates/) (underlying data structure unclear, does not seem to have a collaborative way of sharing templates)
 - [LlamaHub](https://llamahub.ai/) (seems to use GitHub as backend)

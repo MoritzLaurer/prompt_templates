@@ -1,7 +1,8 @@
 # Standardizing and Sharing Tools
 
 !!! note
-    Standardizing the sharing of tools and agents is in an early experimental stage.
+    These are some experimental notes on sharing tools. The new [smolagents](https://github.com/huggingface/smolagents) library provides a great way of sharing tools. 
+
 
 ## What are LLM tools?
 
@@ -38,11 +39,6 @@ For JsonAgents, the function's docstring can be parsed to construct the expected
 For CodeAgents, the function can directly be passed to the LLM's prompt and the .py file is directly executable.  
 
 Alternatively, tools could be shared as .json files, but this would decouple the tool's description (in the .json file) from its code (e.g. in a .py file)
-
-
-## Current implementation in transformers.agents
-
-`transformers.agents` currently has [Tool.push_to_hub](https://huggingface.co/docs/transformers/v4.45.2/en/main_classes/agent#transformers.Tool.push_to_hub) which pushes tools to the hub as a Space. Some tools & prompts have been stored like this [here](https://huggingface.co/huggingface-tools) on the Hub. This makes sense if users want a hosted tool with compute. The modularity and interoperability of this approach, however, can probably be improved. Tools as single functions in .py files would be independent units that can be reuse more easily by others and would be more interoperable with other libraries. 
 
 
 

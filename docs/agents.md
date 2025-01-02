@@ -1,7 +1,7 @@
 # Agents
 
 !!! note
-    Standardizing the sharing of tools and agents is in an early experimental stage.
+    These are some experimental notes on sharing agents. The new [smolagents](https://github.com/huggingface/smolagents) library provides a great way of sharing agents. 
 
 How could the sharing of agents be standardized on the HF Hub?
 
