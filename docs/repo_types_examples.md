@@ -115,7 +115,7 @@ prompt_template = PromptTemplateLoader.from_hub(
 
 
 
-## 2. Attaching prompt templates to model weights
+## 2. Attaching prompt templates to models
 Some open-weight LLMs have been trained to exhibit specific behaviours with specific prompt templates.
 The vision language model [InternVL2](https://huggingface.co/collections/OpenGVLab/internvl-20-667d3961ab5eb12c7ed1463e) was trained to predict bounding boxes for manually specified areas with a special prompt template; 
 the VLM [Molmo](https://huggingface.co/collections/allenai/molmo-66f379e6fe3b8ef090a8ca19) was trained to predict point coordinates of objects of images with a special prompt template; etc.
@@ -244,8 +244,6 @@ The prompts could be directly added to the dataset repository in the standardize
 ## 4. Attaching prompt templates to HF Spaces
 
 [TODO: create example]
-
-See also the [Agents](agents.md) and [Tools](standard_tool_format.md) page for using HF Spaces for hosting prompts and tools as part of agents.
 
 
 

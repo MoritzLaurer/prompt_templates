@@ -6,7 +6,7 @@ A prompt template YAML or JSON file must follow the following standardized struc
 
 - Top-level key (required): `prompt`. This top-level key signals to the parser that the content of the file is a prompt template.
 - Second-level key (required): `template`. This can be either a simple _string_, or a _list of dictionaries_ following the OpenAI messages format. The messages format is recommended for use with LLM APIs or inference containers. Variable placeholders for populating the prompt template string are denoted with double curly brackets _{{...}}_.
-- Second-level keys (optional): (1) `template_variables` (_list_): variables for populating the prompt template. This is used for input validation and to make the required variables for long templates easily accessible; (2) `metadata` (_dict_): information about the template such as the source, date, author etc.; (3) `client_parameters` (_dict_): parameters for the inference client (e.g. temperature, model_id).
+- Second-level keys (optional): (1) `template_variables` (_list_): variables for populating the prompt template. This is used for input validation and to make the required variables for long templates easily accessible; (2) `metadata` (_dict_): information about the template such as the source, date, author etc.; (3) `client_parameters` (_dict_): parameters for the inference client (e.g. temperature, model_id); `custom_data` (_dict_): any other data that does not fit into the other categories. 
 
 Example prompt template following the standard in YAML: 
 ```yaml
@@ -27,6 +27,8 @@ prompt:
       - education
     version: "0.0.1"
     author: "Karl Marx"
+  client_parameters:
+    - temperature: 0
 ```
 
 **Repository types on the HF Hub:** Prompt template files can be shared in any HF repo type (dataset/model/space repo). We recommend sharing collections of prompt templates in dataset repos by default. See details [here](repo_types_examples.md).
