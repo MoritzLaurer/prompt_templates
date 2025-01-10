@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "prompt-templates"
-version = "0.0.12"
+version = "0.0.13"
 description = "A library for working with prompt templates locally or on the Hugging Face Hub."
 authors = ["MoritzLaurer <moritz@huggingface.co>"]
 license = "Appache-2.0"
