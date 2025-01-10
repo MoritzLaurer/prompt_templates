@@ -15,9 +15,8 @@ from huggingface_hub.utils import RepositoryNotFoundError
 from jinja2 import Environment, meta
 from jinja2.sandbox import SandboxedEnvironment
 
-from .constants import Jinja2SecurityLevel, PopulatorType
-from .populated_prompt import PopulatedPrompt
-from .utils import create_yaml_handler, format_template_content
+from .constants import ClientType, Jinja2SecurityLevel, PopulatorType
+from .utils import create_yaml_handler, format_for_client, format_template_content
 
 
 if TYPE_CHECKING:
@@ -90,14 +89,14 @@ class BasePromptTemplate(ABC):
             self._validate_template_variables_equality()
 
     @abstractmethod
-    def populate_template(self, **user_provided_variables: Any) -> PopulatedPrompt:
+    def populate_template(self, **user_provided_variables: Any) -> str | List[Dict[str, Any]]:
         """Abstract method to populate the prompt template with user-provided variables.
 
         Args:
             **user_provided_variables: The values to fill placeholders in the template.
 
         Returns:
-            PopulatedPrompt: A PopulatedPrompt object containing the populated content.
+            str | List[Dict[str, Any]]: The populated prompt content.
         """
         pass
 
@@ -684,7 +683,7 @@ class TextPromptTemplate(BasePromptTemplate):
             jinja2_security_level=jinja2_security_level,
         )
 
-    def populate_template(self, **user_provided_variables: Any) -> PopulatedPrompt:
+    def populate_template(self, **user_provided_variables: Any) -> str:
         """Populate the prompt by replacing placeholders with provided values.
 
         Examples:
@@ -706,11 +705,11 @@ class TextPromptTemplate(BasePromptTemplate):
             **user_provided_variables: The values to fill placeholders in the prompt template.
 
         Returns:
-            PopulatedPrompt: A PopulatedPrompt object containing the populated prompt string.
+            str: The populated prompt string.
         """
         self._validate_user_provided_variables(user_provided_variables)
-        populated_prompt = self._populate_placeholders(self.template, user_provided_variables)
-        return PopulatedPrompt(content=populated_prompt)
+        populated_prompt = str(self._populate_placeholders(self.template, user_provided_variables))
+        return populated_prompt
 
     def to_langchain_template(self) -> "LC_PromptTemplate":
         """Convert the TextPromptTemplate to a LangChain PromptTemplate.
@@ -831,7 +830,7 @@ class ChatPromptTemplate(BasePromptTemplate):
             jinja2_security_level=jinja2_security_level,
         )
 
-    def populate_template(self, **user_provided_variables: Any) -> PopulatedPrompt:
+    def populate_template(self, **user_provided_variables: Any) -> List[Dict[str, Any]]:
         """Populate the prompt template messages by replacing placeholders with provided values.
 
         Examples:
@@ -851,7 +850,7 @@ class ChatPromptTemplate(BasePromptTemplate):
             **user_provided_variables: The values to fill placeholders in the messages template.
 
         Returns:
-            PopulatedPrompt: A PopulatedPrompt object containing the populated messages prompt.
+            List[Dict[str, Any]]: The populated prompt as a list in the OpenAI messages format.
         """
         self._validate_user_provided_variables(user_provided_variables)
 
@@ -862,9 +861,11 @@ class ChatPromptTemplate(BasePromptTemplate):
             }
             for message in self.template
         ]
-        return PopulatedPrompt(content=messages_template_populated)
+        return messages_template_populated
 
-    def create_messages(self, client: str = "openai", **user_provided_variables: Any) -> PopulatedPrompt:
+    def create_messages(
+        self, client: ClientType = "openai", **user_provided_variables: Any
+    ) -> List[Dict[str, Any]] | Dict[str, Any]:
         """Convenience method that populates a prompt template and formats it for a client in one step.
         This method is only useful if your a client that does not use the OpenAI messages format, because
         populating a ChatPromptTemplate converts it into the OpenAI messages format by default.
@@ -898,7 +899,7 @@ class ChatPromptTemplate(BasePromptTemplate):
                 expects variables like 'name' and 'age', pass them as keyword arguments.
 
         Returns:
-            PopulatedPrompt: A populated prompt formatted for the specified client.
+            List[Dict[str, Any]] | Dict[str, Any]: A populated prompt formatted for the specified client.
         """
         if "client" in user_provided_variables:
             logger.warning(
@@ -908,7 +909,7 @@ class ChatPromptTemplate(BasePromptTemplate):
             )
 
         prompt = self.populate_template(**user_provided_variables)
-        return prompt.format_for_client(client)
+        return format_for_client(prompt, client)
 
     def to_langchain_template(self) -> "LC_ChatPromptTemplate":
         """Convert the ChatPromptTemplate to a LangChain ChatPromptTemplate.

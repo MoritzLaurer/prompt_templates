@@ -1,8 +1,118 @@
-from typing import Any, Union
+from typing import Any, Dict, List, Optional, Union, get_args
 
 import yaml as pyyaml
 from ruamel.yaml import YAML
 from ruamel.yaml.scalarstring import LiteralScalarString
+
+from .constants import ClientType
+
+
+def format_for_client(
+    messages: List[Dict[str, Any]], client: ClientType = "openai"
+) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
+    """Format OpenAI-style chat messages for different LLM clients.
+
+    Args:
+        messages: List of message dictionaries in OpenAI format
+        client: The client format to use ('openai', 'anthropic', 'google'). Defaults to 'openai'
+
+    Returns:
+        Messages formatted for the specified client
+
+    Raises:
+        ValueError: If an unsupported client format is specified
+        TypeError: If messages is not a list of dicts
+
+    Examples:
+        Format messages for different LLM clients:
+        >>> messages = [
+        ...     {"role": "system", "content": "You are a helpful assistant"},
+        ...     {"role": "user", "content": "Hello!"}
+        ... ]
+        >>> # OpenAI format (default, no change)
+        >>> openai_messages = format_for_client(messages)
+        >>> print(openai_messages)
+        [{'role': 'system', 'content': 'You are a helpful assistant'}, {'role': 'user', 'content': 'Hello!'}]
+
+        >>> # Anthropic format
+        >>> anthropic_messages = format_for_client(messages, "anthropic")
+        >>> print(anthropic_messages)
+        {'system': 'You are a helpful assistant', 'messages': [{'role': 'user', 'content': 'Hello!'}]}
+
+        >>> # Google (Gemini) format
+        >>> google_messages = format_for_client(messages, "google")
+        >>> print(google_messages)
+        {'system_instruction': 'You are a helpful assistant', 'contents': 'Hello!'}
+    """
+    if not isinstance(messages, list) or not all(isinstance(msg, dict) for msg in messages):
+        raise TypeError("Messages must be a list of dictionaries")
+
+    if client == "openai":
+        return messages
+    elif client == "anthropic":
+        return format_for_anthropic(messages)
+    elif client == "google":
+        return format_for_google(messages)
+    else:
+        raise ValueError(f"Unsupported client format: {client}. Supported formats are: {list(get_args(ClientType))}")
+
+
+def format_for_anthropic(messages: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Format OpenAI-style messages for the Anthropic client.
+
+    Converts OpenAI-style messages to Anthropic's expected format by:
+    1. Extracting the system message (if any) into a top-level 'system' key
+    2. Moving all non-system messages into a 'messages' list
+
+    Args:
+        messages: List of message dictionaries in OpenAI format
+
+    Returns:
+        Dict with 'system' and 'messages' keys formatted for Anthropic
+    """
+    return {
+        "system": next((msg["content"] for msg in messages if msg["role"] == "system"), None),
+        "messages": [msg for msg in messages if msg["role"] != "system"],
+    }
+
+
+def format_for_google(messages: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Format OpenAI-style messages for the Google GenAI SDK's generate_content method.
+
+    Converts OpenAI-style messages to Google Gemini's expected format by:
+    1. Extracting the system message (if any) into a top-level 'system_instruction' key
+    2. Moving all non-system messages into a 'contents' list of messages as `Part` objects
+    (or a single string if there's only one message).
+
+    Args:
+        messages: List of message dictionaries in OpenAI format
+
+    Returns:
+        Dict with 'system_instruction' and 'contents' keys formatted for Google Gemini
+    """
+    from google.genai import types
+
+    system_instruction: Optional[str] = None
+    contents: List[types.Content] = []
+
+    for msg in messages:
+        if msg["role"] == "system":
+            system_instruction = msg["content"]
+        elif msg["role"] == "user":
+            contents.append(types.Content(parts=[types.Part.from_text(msg["content"])], role="user"))
+        elif msg["role"] == "assistant":
+            contents.append(types.Content(parts=[types.Part.from_text(msg["content"])], role="model"))
+        else:
+            raise ValueError(f"Unsupported role: {msg['role']}")
+
+    # If there's only one message, simplify to just the text content
+    if len(contents) == 1:
+        contents = contents[0].parts[0].text
+
+    return {
+        "system_instruction": system_instruction,
+        "contents": contents,
+    }
 
 
 def create_yaml_handler(library: str = "ruamel") -> Union[YAML, Any]:

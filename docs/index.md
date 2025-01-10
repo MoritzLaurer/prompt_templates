@@ -68,7 +68,7 @@ By default, the populated prompt is returned in the OpenAI messages format, whic
 ...     current_date="Wednesday, 11 December 2024"
 ... )
 >>> messages
-PopulatedPrompt([{'role': 'system', 'content': '<artifacts_info>\nThe assistant can create and reference artifacts during conversations. Artifacts are ...'}, {'role': 'user', 'content': 'Create a tic-tac-toe game for me in Python'}])
+[{'role': 'system', 'content': '<artifacts_info>\nThe assistant can create and reference artifacts during conversations. Artifacts are ...'}, {'role': 'user', 'content': 'Create a tic-tac-toe game for me in Python'}]
 ```
 
 #### 5. Use the populated template with any LLM client
@@ -103,8 +103,9 @@ If you use an LLM client that expects a format different to the OpenAI messages 
 ```python
 >>> #! pip install anthropic
 >>> from anthropic import Anthropic
+>>> from prompt_templates import format_for_client
 
->>> messages_anthropic = messages.format_for_client(client="anthropic")
+>>> messages_anthropic = format_for_client(messages, client="anthropic")
 
 >>> client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 >>> response = client.messages.create(
@@ -123,8 +124,9 @@ Or with the [Google Gen AI SDK](https://github.com/googleapis/python-genai) for 
 >>> #!pip install google-genai
 >>> from google import genai
 >>> from google.genai import types
+>>> from prompt_templates import format_for_client
 
->>> messages_google = messages.format_for_client(client="google")
+>>> messages_google = format_for_client(messages, client="google")
 
 >>> client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 

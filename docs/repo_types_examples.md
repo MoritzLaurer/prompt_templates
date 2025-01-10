@@ -59,11 +59,13 @@ messages = prompt_template.populate_template(
 )
 
 # The default output is in the OpenAI messages format. We can easily reformat it for another client.
-messages_anthropic = messages.format_for_client(client="anthropic")
+from prompt_templates import format_for_client
+
+messages_anthropic = format_for_client(messages, client="anthropic")
 
 ```
 
-The output is a PopulatedPrompt instance which contains a list or a dictionary in the format expected by the specified LLM client. For example, OpenAI expects a list of message dictionaries, while Anthropic expects a dictionary with "system" and "messages" keys.
+The output is a list or a dictionary in the format expected by the specified LLM client. For example, OpenAI expects a list of message dictionaries, while Anthropic expects a dictionary with "system" and "messages" keys.
 
 ```python
 #!pip install anthropic

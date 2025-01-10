@@ -14,7 +14,7 @@ nav:
   - API Reference:
     - Downloading prompts and tools: reference/loaders.md
     - Prompt templates: reference/prompt_templates.md
-    - Populated prompt: reference/populated_prompt.md
+    - Utility functions: reference/utils.md
     #- Tools: reference/tools.md
 
 theme:
