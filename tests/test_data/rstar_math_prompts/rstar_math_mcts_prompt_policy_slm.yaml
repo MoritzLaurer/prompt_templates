@@ -1,0 +1,17 @@
+prompt:
+  template: |-
+    <|user|>:
+    {{input_question}}
+    <|assistant|>: Let's think step by step and solve the problem with code. {{trajectory_of_previous_steps}}
+  template_variables:
+    - input_question
+    - trajectory_of_previous_steps
+  metadata:
+    description: "A Monte Carlo Tree Search (MCTS) based prompt that focuses on generating next steps for problem-solving
+      with a user/assistant dialogue format. \nThe prompt template was copied from Appendix A.3 of the rStar-Math paper."
+    version: 1.0.0
+    authors: Xinyu Guan, Li Lyna Zhang, Yifei Liu, Ning Shang, Youran Sun, Yi Zhu, Fan Yang, Mao Yang
+    authors_org: Microsoft Research Asia
+    source: Appendix A.3 of https://arxiv.org/pdf/2501.04519
+  client_parameters: {}
+  custom_data: {}
