@@ -6,7 +6,7 @@ A prompt template YAML or JSON file must follow the following standardized struc
 
 - Top-level key (required): `prompt`. This top-level key signals to the parser that the content of the file is a prompt template.
 - Second-level key (required): `template`. This can be either a simple _string_, or a _list of dictionaries_ following the OpenAI messages format. The messages format is recommended for use with LLM APIs or inference containers. Variable placeholders for populating the prompt template string are denoted with double curly brackets _{{...}}_.
-- Second-level keys (optional): (1) `template_variables` (_list_): variables for populating the prompt template. This is used for input validation and to make the required variables for long templates easily accessible; (2) `metadata` (_dict_): information about the template such as the source, date, author etc.; (3) `client_parameters` (_dict_): parameters for the inference client (e.g. temperature, model_id); `custom_data` (_dict_): any other data that does not fit into the other categories. 
+- Second-level keys (optional): (1) `template_variables` (_list_): variables for populating the prompt template. This is used for input validation and to make the required variables for long templates easily accessible; (2) `metadata` (_dict_): information about the template such as the source, date, author etc.; (3) `client_parameters` (_dict_): parameters for the inference client (e.g. temperature, model_id); (4) `custom_data` (_dict_): any other data that does not fit into the other categories.
 
 Example prompt template following the standard in YAML: 
 ```yaml
@@ -26,7 +26,7 @@ prompt:
       - programming
       - education
     version: "0.0.1"
-    author: "Karl Marx"
+    author: "Guido van Bossum"
   client_parameters:
     - temperature: 0
 ```
@@ -103,7 +103,7 @@ LangChain is a great library for creating interoperability between different LLM
 This library is inspired by LangChain's [PromptTemplate](https://python.langchain.com/api_reference/core/prompts/langchain_core.prompts.prompt.PromptTemplate.html) and [ChatPromptTemplate](https://python.langchain.com/api_reference/core/prompts/langchain_core.prompts.chat.ChatPromptTemplate.html) classes. One difference is that the LangChain ChatPromptTemplate expects a "messages" key instead of a "template" key for the prompt template in the messages format. This HF library uses the "template" key both for HF [TextPromptTemplate][prompt_templates.prompt_templates.TextPromptTemplate] and for HF [ChatPromptTemplate][prompt_templates.prompt_templates.ChatPromptTemplate] for simplicity. If you still load a YAML/JSON file with a "messages" key, it will be automatically renamed to "template". You can also always convert a HF PromptTemplate to a LangChain template with [.to_langchain_template()][prompt_templates.prompt_templates.ChatPromptTemplate.to_langchain_template]. The objective of this library is not to reproduce the full functionality of a library like LangChain, but to enable the community to share prompts on the HF Hub and load and reuse them with any of their favourite libraries. 
 
 
-A `PromptTemplate` from `prompt_templates` can be easily converted to a langchain template: 
+A `PromptTemplate` from `prompt-templates` can be easily converted to a langchain template: 
 
 ```py
 from prompt_templates import PromptTemplateLoader
