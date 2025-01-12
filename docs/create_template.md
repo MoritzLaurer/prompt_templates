@@ -2,7 +2,7 @@
 
 You can create and save a prompt template in a few simple lines of code. 
 
-- Create a `ChatPromptTemplate` if your template is composed of multiple messages. Messages must follow the  OpenAI chat message format for standardization (they can always be converted to formats for other LLM clients in a later step). 
+- Create a `ChatPromptTemplate` if your template is composed of multiple messages. Messages must follow the  OpenAI chat message format for standardization (they can always be converted to formats for other LLM clients in a later step via the [utils](reference/utils.md#prompt_templates.utils.format_for_client)). 
 - Create a `TextPromptTemplate` if your template is a single string and end users should insert it into the adequate message role themselves.
 
 ## TextPromptTemplates
