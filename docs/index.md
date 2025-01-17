@@ -34,7 +34,7 @@ pip install prompt-templates
 ```python
 >>> from prompt_templates import list_prompt_templates
 >>> files = list_prompt_templates("MoritzLaurer/closed_system_prompts")
->>> files
+>>> print(files)
 ['claude-3-5-artifacts-leak-210624.yaml', 'claude-3-5-sonnet-text-090924.yaml', 'claude-3-5-sonnet-text-image-090924.yaml', 'openai-metaprompt-audio.yaml', 'openai-metaprompt-text.yaml']
 
 ```
@@ -48,14 +48,14 @@ pip install prompt-templates
 ...     filename="claude-3-5-artifacts-leak-210624.yaml"
 ... )
 >>> # Inspect template
->>> prompt_template.template
+>>> print(prompt_template.template)
 [{'role': 'system',
   'content': '<artifacts_info>\nThe assistant can create and reference artifacts ...'},
  {'role': 'user', 'content': '{{user_message}}'}]
 >>> # Check required template variables
->>> prompt_template.template_variables
+>>> print(prompt_template.template_variables)
 ['current_date', 'user_message']
->>> prompt_template.metadata
+>>> print(prompt_template.metadata)
 {'source': 'https://gist.github.com/dedlim/6bf6d81f77c19e20cd40594aa09e3ecd'}
 
 ```
@@ -69,7 +69,7 @@ By default, the populated prompt is returned in the OpenAI messages format, whic
 ...     user_message="Create a tic-tac-toe game for me in Python",
 ...     current_date="Wednesday, 11 December 2024"
 ... )
->>> messages  # doctest: +SKIP
+>>> print(messages)  # doctest: +SKIP
 [{'role': 'system', 'content': '<artifacts_info>\nThe assistant can create and reference artifacts during conversations. Artifacts are ...'}, {'role': 'user', 'content': 'Create a tic-tac-toe game for me in Python'}]
 
 ```
@@ -169,7 +169,7 @@ Or with the [Google Gen AI SDK](https://github.com/googleapis/python-genai) for 
 ...     metadata=metadata,
 ... )
 
->>> prompt_template
+>>> print(prompt_template)
 ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., client_parameters={}, custom_data={}, populator='jinja2', jinja2_security_level='standard')
 
 ```

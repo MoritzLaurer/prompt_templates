@@ -1,6 +1,6 @@
 # Prompt Templates
 
-Prompt templates have become key artifacts for researchers and practitioners working with AI. There is, however, no standardized way of sharing prompt templates. Prompts and prompt templates are shared on the Hugging Face Hub in [.txt files](https://huggingface.co/HuggingFaceFW/fineweb-edu-classifier/blob/main/utils/prompt.txt), in [HF datasets](https://huggingface.co/datasets/fka/awesome-chatgpt-prompts), as strings in [model cards](https://huggingface.co/OpenGVLab/InternVL2-8B#grounding-benchmarks), or on GitHub as [python strings](https://github.com/huggingface/cosmopedia/tree/main/prompts) embedded in scripts, in [JSON and YAML](https://github.com/hwchase17/langchain-hub/blob/master/prompts/README.md) files, or in [Jinja2](https://github.com/argilla-io/distilabel/tree/main/src/distilabel/steps/tasks/templates) files. 
+Prompt templates have become key artifacts for researchers and practitioners working with AI. There is, however, no standardized way of sharing prompt templates. Prompts and prompt templates are shared on the Hugging Face Hub in [.txt files](https://huggingface.co/HuggingFaceFW/fineweb-edu-classifier/blob/main/utils/prompt.txt), in [HF datasets](https://huggingface.co/datasets/fka/awesome-chatgpt-prompts), as strings in [model cards](https://huggingface.co/OpenGVLab/InternVL2-8B#grounding-benchmarks), or on GitHub as [python strings](https://github.com/huggingface/cosmopedia/tree/main/prompts) embedded in scripts, in [JSON and YAML](https://github.com/hwchase17/langchain-hub/blob/master/prompts/README.md) files, or in [Jinja2](https://github.com/argilla-io/distilabel/tree/main/src/distilabel/steps/tasks/templates) files.
 
 
 
@@ -36,13 +36,14 @@ from prompt_templates import list_prompt_templates
 files = list_prompt_templates("MoritzLaurer/closed_system_prompts")
 print(files)
 # ['claude-3-5-artifacts-leak-210624.yaml', 'claude-3-5-sonnet-text-090924.yaml', 'claude-3-5-sonnet-text-image-090924.yaml', 'openai-metaprompt-audio.yaml', 'openai-metaprompt-text.yaml']
+
 ```
 
 #### 3. Download and inspect a prompt template
 
 ```python
-from prompt_templates import PromptTemplateLoader
-prompt_template = PromptTemplateLoader.from_hub(
+from prompt_templates import ChatPromptTemplate
+prompt_template = ChatPromptTemplate.load_from_hub(
     repo_id="MoritzLaurer/closed_system_prompts",
     filename="claude-3-5-artifacts-leak-210624.yaml"
 )
@@ -53,9 +54,10 @@ print(prompt_template.template)
 # {'role': 'user', 'content': '{{user_message}}'}]
 # Check required template variables
 print(prompt_template.template_variables)
-# ['current_date', 'user_message']
+#['current_date', 'user_message']
 print(prompt_template.metadata)
-# {'source': 'https://gist.github.com/dedlim/6bf6d81f77c19e20cd40594aa09e3ecd'}
+#{'source': 'https://gist.github.com/dedlim/6bf6d81f77c19e20cd40594aa09e3ecd'}
+
 ```
 
 
@@ -67,8 +69,9 @@ messages = prompt_template.populate_template(
     user_message="Create a tic-tac-toe game for me in Python",
     current_date="Wednesday, 11 December 2024"
 )
-print(messages)
-# PopulatedPrompt([{'role': 'system', 'content': '<artifacts_info>\nThe assistant can create and reference artifacts during conversations. Artifacts are ...'}, {'role': 'user', 'content': 'Create a tic-tac-toe game for me in Python'}])
+print(messages)  # doctest: +SKIP
+#[{'role': 'system', 'content': '<artifacts_info>\nThe assistant can create and reference artifacts during conversations. Artifacts are ...'}, {'role': 'user', 'content': 'Create a tic-tac-toe game for me in Python'}]
+
 ```
 
 #### 5. Use the populated template with any LLM client
@@ -82,8 +85,9 @@ response = client.chat.completions.create(
     model="gpt-4o-mini",
     messages=messages
 )
-print(response.choices[0].message.content[:100], "...")
-# Here's a simple text-based Tic-Tac-Toe game in Python. This code allows two players to take turns pl ...
+print(response.choices[0].message.content[:100], "...")  # doctest: +SKIP
+#Here's a simple text-based Tic-Tac-Toe game in Python. This code allows two players to take turns pl ...
+
 ```
 
 ```python
@@ -91,11 +95,12 @@ from huggingface_hub import InferenceClient
 client = InferenceClient(api_key=os.environ.get("HF_TOKEN"))
 response = client.chat.completions.create(
     model="meta-llama/Llama-3.3-70B-Instruct", 
-    messages=messages.to_dict(),
+    messages=messages,
     max_tokens=500
 )
-print(response.choices[0].message.content[:100], "...")
-# <antThinking>Creating a tic-tac-toe game in Python is a good candidate for an artifact. It's a self- ...
+print(response.choices[0].message.content[:100], "...")  # doctest: +SKIP
+#<antThinking>Creating a tic-tac-toe game in Python is a good candidate for an artifact. It's a self- ...
+
 ```
 
 If you use an LLM client that expects a format different to the OpenAI messages standard, you can easily reformat the prompt for this client. For example with Anthropic:
@@ -103,8 +108,9 @@ If you use an LLM client that expects a format different to the OpenAI messages 
 ```python
 #! pip install anthropic
 from anthropic import Anthropic
+from prompt_templates import format_for_client
 
-messages_anthropic = messages.format_for_client(client="anthropic")
+messages_anthropic = format_for_client(messages, client="anthropic")
 
 client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 response = client.messages.create(
@@ -113,8 +119,9 @@ response = client.messages.create(
     messages=messages_anthropic["messages"],
     max_tokens=1000
 )
-print(response.content[0].text[:100], "...")
-# Sure, I can create a tic-tac-toe game for you in Python. Here's a simple implementation: ...
+print(response.content[0].text[:100], "...")  # doctest: +SKIP
+#Sure, I can create a tic-tac-toe game for you in Python. Here's a simple implementation: ...
+
 ```
 
 Or with the [Google Gen AI SDK](https://github.com/googleapis/python-genai) for Gemini 2.0
@@ -123,21 +130,22 @@ Or with the [Google Gen AI SDK](https://github.com/googleapis/python-genai) for 
 #!pip install google-genai
 from google import genai
 from google.genai import types
+from prompt_templates import format_for_client
 
-messages_gemini = messages.format_for_client(client="gemini")
+messages_google = format_for_client(messages, client="google")
 
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 response = client.models.generate_content(
     model='gemini-2.0-flash-exp',
-    contents=messages_gemini["contents"],
+    contents=messages_google["contents"],
     config=types.GenerateContentConfig(
-        system_instruction=messages_gemini["system_instruction"],
+        system_instruction=messages_google["system_instruction"],
     )
 )
-print(response.text[:100], "...")
-```
+print(response.text[:100], "...")  # doctest: +SKIP
 
+```
 
 #### 6. Create your own prompt templates
 
@@ -162,7 +170,8 @@ prompt_template = ChatPromptTemplate(
 )
 
 print(prompt_template)
-# ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., client_parameters={}, custom_data={}, populator_type='double_brace', populator=<prompt_templates.prompt_templates.DoubleBracePopu...)
+#ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., client_parameters={}, custom_data={}, populator='jinja2', jinja2_security_level='standard')
+
 ```
 
 #### 7. Store or share your prompt templates
@@ -170,9 +179,10 @@ You can then store your prompt template locally or share it on the HF Hub.
 
 ```python
 # save locally
-prompt_template.save_to_local("./tests/test_data/code_teacher_test.yaml")
+prompt_template.save_to_local("./tests/test_data/example_prompts/code_teacher_test.yaml")
 # or save it on the HF Hub
-prompt_template.save_to_hub(repo_id="MoritzLaurer/example_prompts_test", filename="code_teacher_test.yaml", create_repo=True)
-# CommitInfo(commit_url='https://huggingface.co/MoritzLaurer/example_prompts_test/commit/4cefd2c94f684f9bf419382f96b36692cd175e84', commit_message='Upload prompt template code_teacher_test.yaml', commit_description='', oid='4cefd2c94f684f9bf419382f96b36692cd175e84', pr_url=None, repo_url=RepoUrl('https://huggingface.co/MoritzLaurer/example_prompts_test', endpoint='https://huggingface.co', repo_type='model', repo_id='MoritzLaurer/example_prompts_test'), pr_revision=None, pr_num=None)
+prompt_template.save_to_hub(repo_id="MoritzLaurer/example_prompts_test", filename="code_teacher_test.yaml", create_repo=True)  # doctest: +SKIP
+#CommitInfo(commit_url='https://huggingface.co/MoritzLaurer/example_prompts_test/commit/4cefd2c94f684f9bf419382f96b36692cd175e84', commit_message='Upload prompt template code_teacher_test.yaml', commit_description='', oid='4cefd2c94f684f9bf419382f96b36692cd175e84', pr_url=None, repo_url=RepoUrl('https://huggingface.co/MoritzLaurer/example_prompts_test', endpoint='https://huggingface.co', repo_type='dataset', repo_id='MoritzLaurer/example_prompts_test'), pr_revision=None, pr_num=None)
+
 ```
 
