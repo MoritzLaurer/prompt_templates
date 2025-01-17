@@ -1,7 +1,7 @@
 """
 Script to sync local test data to the Hub.
 Usage:
-poetry run python tests/test_data/sync_test_data.py [--force]
+poetry run python tests/test_data/sync_test_data.py --force
 """
 
 import argparse
@@ -18,7 +18,6 @@ from prompt_templates import ChatPromptTemplate, TextPromptTemplate
 
 
 MODEL_REPOS = ["open_models_special_prompts"]
-JINJA2_PROMPTS = ["translate_jinja2"]
 
 
 # Load token from .env file
@@ -74,11 +73,16 @@ def sync_test_files(force: bool = False):
         for local_file in local_files:
             try:
                 # Load and standardize through library
-                populator = "jinja2" if local_file.stem in JINJA2_PROMPTS else "double_brace"
+                populator = "jinja2"
                 try:
                     template = ChatPromptTemplate.load_from_local(path=local_file, populator=populator)
-                except Exception:
-                    template = TextPromptTemplate.load_from_local(path=local_file, populator=populator)
+                except ValueError as e:
+                    # Check if this is specifically the template type validation error
+                    if "Cannot load a text template using ChatPromptTemplate" in str(e):
+                        template = TextPromptTemplate.load_from_local(path=local_file, populator=populator)
+                    else:
+                        # Re-raise if it's a different ValueError
+                        raise
 
                 # Save standardized version locally
                 standardized_path = directory / f"{local_file.stem}_standardized{local_file.suffix}"
@@ -100,7 +104,6 @@ def sync_test_files(force: bool = False):
                     repo_type=repo_type,
                     token=token,
                     create_repo=True,
-                    exist_ok=True,
                 )
                 print(f"Synced {local_file.name}")
 

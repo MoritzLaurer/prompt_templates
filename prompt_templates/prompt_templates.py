@@ -337,6 +337,7 @@ class BasePromptTemplate(ABC):
             for k, v in prompt_data.items()
             if k not in ["template", "template_variables", "metadata", "client_parameters", "custom_data"]
         }
+        custom_data = {**prompt_data.get("custom_data", {}), **custom_data}
 
         # Determine template type and create appropriate instance
         if isinstance(template, list) and any(isinstance(item, dict) for item in template):
