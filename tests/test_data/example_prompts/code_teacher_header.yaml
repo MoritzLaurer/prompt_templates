@@ -1,0 +1,15 @@
+---
+metadata:
+  name: "Code Teacher"
+  description: "A simple chat prompt for explaining programming concepts with examples"
+  version: "0.0.1"
+  author: "Guido van Bossum"
+template_variables: [concept, programming_language]
+client_parameters: 
+  temperature: 0
+custom_data: {}
+---
+- role: "system"
+  content: "You are a coding assistant who explains concepts clearly and provides short examples."
+- role: "user"
+  content: "Explain what {{concept}} is in {{programming_language}}."

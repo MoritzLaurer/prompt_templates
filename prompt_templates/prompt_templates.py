@@ -1,21 +1,18 @@
 import io
 import json
 import logging
-import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Match, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Set, Tuple, Union
 
-import jinja2
 import yaml
-from huggingface_hub import HfApi, metadata_update
+from huggingface_hub import HfApi, hf_hub_download, metadata_update
 from huggingface_hub.hf_api import CommitInfo
 from huggingface_hub.repocard import RepoCard
-from huggingface_hub.utils import RepositoryNotFoundError
-from jinja2 import Environment, meta
-from jinja2.sandbox import SandboxedEnvironment
+from huggingface_hub.utils import RepositoryNotFoundError, validate_repo_id
 
-from .constants import ClientType, Jinja2SecurityLevel, PopulatorType
+from .constants import VALID_PROMPT_EXTENSIONS, ClientType, Jinja2SecurityLevel, PopulatorType
+from .populators import DoubleBracePopulator, Jinja2TemplatePopulator, SingleBracePopulator, TemplatePopulator
 from .utils import create_yaml_handler, format_for_client, format_template_content
 
 
@@ -100,6 +97,394 @@ class BasePromptTemplate(ABC):
         """
         pass
 
+    @classmethod
+    def load_from_local(
+        cls,
+        path: Union[str, Path],
+        populator: PopulatorType = "jinja2",
+        jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
+        yaml_library: str = "ruamel",
+    ) -> Union["TextPromptTemplate", "ChatPromptTemplate"]:
+        """Load a prompt template from a local YAML file.
+
+        Args:
+            path (Union[str, Path]): Path to the YAML file containing the prompt template
+            populator ([PopulatorType]): The populator type to use among Literal["double_brace_regex", "single_brace_regex", "jinja2"]. Defaults to "jinja2".
+            jinja2_security_level (Literal["strict", "standard", "relaxed"], optional): The security level for the Jinja2 populator. Defaults to "standard".
+            yaml_library (str, optional): The YAML library to use ("ruamel" or "pyyaml"). Defaults to "ruamel".
+
+        Returns:
+            Union[TextPromptTemplate, ChatPromptTemplate]: The loaded template instance
+
+        Raises:
+            FileNotFoundError: If the file doesn't exist
+            ValueError: If the file is not a .yaml/.yml file
+            ValueError: If the YAML structure is invalid
+            ValueError: If attempting to load a text template with ChatPromptTemplate or vice versa
+
+        Examples:
+            Download a text prompt template:
+            >>> from prompt_templates import TextPromptTemplate
+            >>> prompt_template = TextPromptTemplate.load_from_local("./tests/test_data/example_prompts/translate.yaml")
+            >>> print(prompt_template)
+            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., client_parameters={}, custom_data={}, populator='jinja2', jinja2_security_level='standard')
+            >>> prompt_template.template
+            'Translate the following text to {{language}}:\\n{{text}}'
+            >>> prompt_template.template_variables
+            ['language', 'text']
+            >>> prompt_template.metadata['name']
+            'Simple Translator'
+
+            Download a chat prompt template:
+            >>> from prompt_templates import ChatPromptTemplate
+            >>> prompt_template = ChatPromptTemplate.load_from_local("./tests/test_data/example_prompts/code_teacher.yaml")
+            >>> print(prompt_template)
+            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a...', template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ...', client_parameters={}, custom_data={}, populator='jinja2', jinja2_security_level='standard')
+            >>> prompt_template.template
+            [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {{concept}} is in {{programming_language}}.'}]
+            >>> prompt_template.template_variables
+            ['concept', 'programming_language']
+            >>> prompt_template.metadata['version']
+            '0.0.1'
+
+        """
+        path = Path(path)
+        if not path.exists():
+            raise FileNotFoundError(f"Template file not found: {path}")
+        if path.suffix not in VALID_PROMPT_EXTENSIONS:
+            raise ValueError(f"Template file must be a .yaml or .yml file, got: {path}")
+
+        yaml = create_yaml_handler(yaml_library)
+        try:
+            with open(path, "r") as file:
+                if yaml_library == "ruamel":
+                    prompt_file_dic = yaml.load(file)
+                else:
+                    prompt_file_dic = yaml.safe_load(file)
+        except Exception as e:
+            raise ValueError(
+                f"Failed to parse '{path}' as a valid YAML file. "
+                f"Please ensure the file is properly formatted.\n"
+                f"Error details: {str(e)}"
+            ) from e
+
+        cls._validate_template_type(prompt_file_dic, str(path))
+
+        return cls._load_template_from_dict(
+            prompt_file_dic, populator=populator, jinja2_security_level=jinja2_security_level
+        )
+
+    @classmethod
+    def load_from_hub(
+        cls,
+        repo_id: str,
+        filename: str,
+        repo_type: str = "dataset",
+        revision: Optional[str] = None,
+        populator: PopulatorType = "jinja2",
+        jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
+        yaml_library: str = "ruamel",
+    ) -> Union["TextPromptTemplate", "ChatPromptTemplate"]:
+        """Load a prompt template from the Hugging Face Hub.
+
+        Downloads and loads a prompt template from a repository on the Hugging Face Hub.
+        The template file should be a YAML file following the standardized format.
+
+        Args:
+            repo_id (str): The repository ID on Hugging Face Hub (e.g., 'username/repo')
+            filename (str): Name of the YAML file containing the template
+            repo_type (str, optional): Type of repository. Must be one of
+                ['dataset', 'model', 'space']. Defaults to "dataset"
+            revision (Optional[str], optional): Git revision to download from.
+                Can be a branch name, tag, or commit hash. Defaults to None
+            populator ([PopulatorType]): The populator type to use among Literal["double_brace_regex", "single_brace_regex", "jinja2"]. Defaults to "jinja2".
+            jinja2_security_level (Literal["strict", "standard", "relaxed"], optional): The security level for the Jinja2 populator. Defaults to "standard".
+            yaml_library (str, optional): The YAML library to use ("ruamel" or "pyyaml"). Defaults to "ruamel".
+
+
+        Returns:
+            Union[TextPromptTemplate, ChatPromptTemplate]: The loaded template instance
+
+        Raises:
+            ValueError: If repo_id format is invalid
+            ValueError: If repo_type is invalid
+            FileNotFoundError: If file cannot be downloaded from Hub
+            ValueError: If the YAML structure is invalid
+            ValueError: If attempting to load a text template with ChatPromptTemplate or vice versa
+
+        Examples:
+            Download a text prompt template:
+            >>> from prompt_templates import TextPromptTemplate
+            >>> prompt_template = TextPromptTemplate.load_from_hub(
+            ...     repo_id="MoritzLaurer/example_prompts",
+            ...     filename="translate.yaml"
+            ... )
+            >>> print(prompt_template)
+            TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{...', template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si...', client_parameters={}, custom_data={}, populator='jinja2', jinja2_security_level='standard')
+            >>> prompt_template.template
+            'Translate the following text to {{language}}:\\n{{text}}'
+            >>> prompt_template.template_variables
+            ['language', 'text']
+            >>> prompt_template.metadata['name']
+            'Simple Translator'
+
+            Download a chat prompt template:
+            >>> from prompt_templates import ChatPromptTemplate
+            >>> prompt_template = ChatPromptTemplate.load_from_hub(
+            ...     repo_id="MoritzLaurer/example_prompts",
+            ...     filename="code_teacher.yaml"
+            ... )
+            >>> print(prompt_template)
+            ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a...', template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ...', client_parameters={}, custom_data={}, populator='jinja2', jinja2_security_level='standard')
+            >>> prompt_template.template
+            [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {{concept}} is in {{programming_language}}.'}]
+            >>> prompt_template.template_variables
+            ['concept', 'programming_language']
+            >>> prompt_template.metadata['version']
+            '0.0.1'
+        """
+        # Validate Hub parameters
+        try:
+            validate_repo_id(repo_id)
+        except ValueError as e:
+            raise ValueError(f"Invalid repo_id format: {str(e)}") from e
+
+        if repo_type not in ["dataset", "model", "space"]:
+            raise ValueError(f"repo_type must be one of ['dataset', 'model', 'space'], got {repo_type}")
+
+        # Ensure .yaml extension
+        if not filename.endswith(VALID_PROMPT_EXTENSIONS):
+            filename += ".yaml"
+
+        try:
+            file_path = hf_hub_download(repo_id=repo_id, filename=filename, repo_type=repo_type, revision=revision)
+        except Exception as e:
+            raise FileNotFoundError(f"Failed to download template from Hub: {str(e)}") from e
+
+        yaml = create_yaml_handler(yaml_library)
+        try:
+            with open(file_path, "r") as file:
+                if yaml_library == "ruamel":
+                    prompt_file_dic = yaml.load(file)
+                else:
+                    prompt_file_dic = yaml.safe_load(file)
+        except Exception as e:
+            raise ValueError(
+                f"Failed to parse '{filename}' as a valid YAML file. "
+                f"Please ensure the file is properly formatted.\n"
+                f"Error details: {str(e)}"
+            ) from e
+
+        file_info = f"'{filename}' from '{repo_id}'"
+        cls._validate_template_type(prompt_file_dic, file_info)
+
+        return cls._load_template_from_dict(
+            prompt_file_dic, populator=populator, jinja2_security_level=jinja2_security_level
+        )
+
+    @staticmethod
+    def _load_template_from_dict(
+        prompt_file_dic: Dict[str, Any],
+        populator: PopulatorType = "jinja2",
+        jinja2_security_level: Literal["strict", "standard", "relaxed"] = "standard",
+    ) -> Union["TextPromptTemplate", "ChatPromptTemplate"]:
+        """Internal method to load a template from parsed YAML data.
+
+        Args:
+            prompt_file_dic: Dictionary containing parsed YAML data
+            populator: Optional template populator type
+            jinja2_security_level: Security level for Jinja2 populator
+
+        Returns:
+            Union[TextPromptTemplate, ChatPromptTemplate]: Loaded template instance
+
+        Raises:
+            ValueError: If YAML structure is invalid
+        """
+        # Validate YAML structure
+        if "prompt" not in prompt_file_dic:
+            raise ValueError(
+                f"Invalid YAML structure: The top-level keys are {list(prompt_file_dic.keys())}. "
+                "The YAML file must contain the key 'prompt' as the top-level key."
+            )
+
+        prompt_data = prompt_file_dic["prompt"]
+
+        # Check for standard "template" key
+        if "template" not in prompt_data:
+            if "messages" in prompt_data:
+                template = prompt_data["messages"]
+                del prompt_data["messages"]
+                logger.info(
+                    "The YAML file uses the 'messages' key for the chat prompt template following the LangChain format. "
+                    "The 'messages' key is renamed to 'template' for simplicity and consistency in this library."
+                )
+            else:
+                raise ValueError(
+                    f"Invalid YAML structure under 'prompt' key: {list(prompt_data.keys())}. "
+                    "The YAML file must contain a 'template' key under 'prompt'. "
+                    "Please refer to the documentation for a compatible YAML example."
+                )
+        else:
+            template = prompt_data["template"]
+
+        # Extract fields
+        template_variables = prompt_data.get("template_variables")
+        metadata = prompt_data.get("metadata")
+        client_parameters = prompt_data.get("client_parameters")
+        custom_data = {
+            k: v
+            for k, v in prompt_data.items()
+            if k not in ["template", "template_variables", "metadata", "client_parameters", "custom_data"]
+        }
+
+        # Determine template type and create appropriate instance
+        if isinstance(template, list) and any(isinstance(item, dict) for item in template):
+            return ChatPromptTemplate(
+                template=template,
+                template_variables=template_variables,
+                metadata=metadata,
+                client_parameters=client_parameters,
+                custom_data=custom_data,
+                populator=populator,
+                jinja2_security_level=jinja2_security_level,
+            )
+        elif isinstance(template, str):
+            return TextPromptTemplate(
+                template=template,
+                template_variables=template_variables,
+                metadata=metadata,
+                client_parameters=client_parameters,
+                custom_data=custom_data,
+                populator=populator,
+                jinja2_security_level=jinja2_security_level,
+            )
+        else:
+            raise ValueError(
+                f"Invalid template type: {type(template)}. "
+                "Template must be either a string for text prompts or a list of dictionaries for chat prompts."
+            )
+
+    @classmethod
+    def _validate_template_type(cls, prompt_file_dic: Dict[str, Any], file_info: str) -> None:
+        """Validate that the template type matches the class it was called from.
+
+        Args:
+            prompt_file_dic: Dictionary containing parsed YAML data
+            file_info: String describing the file location (e.g., file path or Hub location)
+                for error messages
+
+        Raises:
+            ValueError: If template structure is invalid or type doesn't match the class
+        """
+        if not isinstance(prompt_file_dic, dict) or "prompt" not in prompt_file_dic:
+            raise ValueError(f"File '{file_info}' must contain a top-level 'prompt' key")
+
+        template = prompt_file_dic["prompt"].get("template")
+        if template is None:
+            raise ValueError(f"Template is missing in file '{file_info}'")
+
+        is_chat_template = isinstance(template, list) and any(isinstance(item, dict) for item in template)
+        is_text_template = isinstance(template, str)
+
+        if cls.__name__ == "ChatPromptTemplate" and not is_chat_template:
+            raise ValueError(
+                f"Cannot load a text template using ChatPromptTemplate. The template in '{file_info}' "
+                "appears to be a text template. Use TextPromptTemplate.load_from_local() or .load_from_hub() instead."
+            )
+        elif cls.__name__ == "TextPromptTemplate" and not is_text_template:
+            raise ValueError(
+                f"Cannot load a chat template using TextPromptTemplate. The template in {file_info} "
+                "appears to be a chat template. Use ChatPromptTemplate.load_from_local() or .load_from_hub() instead."
+            )
+
+    def save_to_local(
+        self,
+        path: Union[str, Path],
+        format: Optional[Literal["yaml", "json"]] = None,
+        yaml_library: str = "ruamel",
+        prettify_template: bool = True,
+    ) -> None:
+        """Save the prompt template as a local YAML or JSON file.
+
+        Args:
+            path: Path where to save the file. Can be string or Path object
+            format: Output format ("yaml" or "json"). If None, inferred from filename
+            yaml_library: YAML library to use ("ruamel" or "pyyaml"). Defaults to "ruamel" for better formatting and format preservation.
+            prettify_template: If true format the template content with literal block scalars, i.e. "|-" in yaml.
+                This makes the string behave like a Python '''...''' block to make strings easier to read and edit.
+                Defaults to True
+
+        Examples:
+            >>> from prompt_templates import ChatPromptTemplate
+            >>> messages_template = [
+            ...     {"role": "system", "content": "You are a coding assistant who explains concepts clearly and provides short examples."},
+            ...     {"role": "user", "content": "Explain what {{concept}} is in {{programming_language}}."}
+            ... ]
+            >>> template_variables = ["concept", "programming_language"]
+            >>> metadata = {
+            ...     "name": "Code Teacher",
+            ...     "description": "A simple chat prompt for explaining programming concepts with examples",
+            ...     "tags": ["programming", "education"],
+            ...     "version": "0.0.1",
+            ...     "author": "My Awesome Company"
+            ... }
+            >>> prompt_template = ChatPromptTemplate(
+            ...     template=messages_template,
+            ...     template_variables=template_variables,
+            ...     metadata=metadata,
+            ... )
+            >>> prompt_template.save_to_local("./tests/test_data/example_prompts/code_teacher_test.yaml")  # doctest: +SKIP
+        """
+
+        path = Path(path)
+        # Handle format inference and validation
+        file_extension = path.suffix.lstrip(".")
+        if format is None:
+            # Infer format from extension
+            if file_extension in ["yaml", "yml"]:
+                format = "yaml"
+            elif file_extension == "json":
+                format = "json"
+            else:
+                raise ValueError(f"Cannot infer format from file extension: {path.suffix}")
+        else:
+            # Validate explicitly provided format matches file extension
+            if format not in ["yaml", "yml", "json"]:
+                raise ValueError(f"Unsupported format: {format}")
+            if format in ["yaml", "yml"] and file_extension in ["yaml", "yml"]:
+                # Both are YAML variants, so they match
+                pass
+            elif format != file_extension:
+                raise ValueError(f"Provided format '{format}' does not match file extension '{path.suffix}'")
+
+        data = {
+            "prompt": {
+                "template": self.template,
+                "template_variables": self.template_variables,
+                "metadata": self.metadata,
+                "client_parameters": self.client_parameters,
+                "custom_data": self.custom_data,
+            }
+        }
+
+        if prettify_template:
+            data["prompt"]["template"] = format_template_content(data["prompt"]["template"])
+
+        with open(path, "w", encoding="utf-8") as f:
+            if format == "json":
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            else:  # yaml
+                yaml_handler = create_yaml_handler(yaml_library)
+                if yaml_library == "ruamel":
+                    yaml_handler.dump(data, f)
+                elif yaml_library == "pyyaml":
+                    yaml_handler.dump(data, f, sort_keys=False, allow_unicode=True)
+                else:
+                    raise ValueError(
+                        f"Unknown yaml library: {yaml_library}. Valid options are: 'ruamel' (default) or 'pyyaml'."
+                    )
+
     def save_to_hub(
         self,
         repo_id: str,
@@ -161,14 +546,13 @@ class BasePromptTemplate(ABC):
             ...     template_variables=template_variables,
             ...     metadata=metadata,
             ... )
-            >>> prompt_template.save_to_hub(
+            >>> prompt_template.save_to_hub(  # doctest: +SKIP
             ...     repo_id="MoritzLaurer/example_prompts_test",
             ...     filename="code_teacher_test.yaml",
             ...     #create_repo=True,  # if the repo does not exist, create it
             ...     #private=True,  # if you want to create a private repo
             ...     #token="hf_..."
             ... )
-            'https://huggingface.co/MoritzLaurer/example_prompts_test/blob/main/code_teacher_test.yaml'
         """
 
         # Handle format inference and validation
@@ -296,99 +680,12 @@ class BasePromptTemplate(ABC):
             parent_commit=parent_commit,
         )
 
-    def save_to_local(
-        self,
-        path: Union[str, Path],
-        format: Optional[Literal["yaml", "json"]] = None,
-        yaml_library: str = "ruamel",
-        prettify_template: bool = True,
-    ) -> None:
-        """Save the prompt template as a local YAML or JSON file.
-
-        Args:
-            path: Path where to save the file. Can be string or Path object
-            format: Output format ("yaml" or "json"). If None, inferred from filename
-            yaml_library: YAML library to use ("ruamel" or "pyyaml"). Defaults to "ruamel" for better formatting and format preservation.
-            prettify_template: If true format the template content with literal block scalars, i.e. "|-" in yaml.
-                This makes the string behave like a Python '''...''' block to make strings easier to read and edit.
-                Defaults to True
-
-        Examples:
-            >>> from prompt_templates import ChatPromptTemplate
-            >>> messages_template = [
-            ...     {"role": "system", "content": "You are a coding assistant who explains concepts clearly and provides short examples."},
-            ...     {"role": "user", "content": "Explain what {{concept}} is in {{programming_language}}."}
-            ... ]
-            >>> template_variables = ["concept", "programming_language"]
-            >>> metadata = {
-            ...     "name": "Code Teacher",
-            ...     "description": "A simple chat prompt for explaining programming concepts with examples",
-            ...     "tags": ["programming", "education"],
-            ...     "version": "0.0.1",
-            ...     "author": "My Awesome Company"
-            ... }
-            >>> prompt_template = ChatPromptTemplate(
-            ...     template=messages_template,
-            ...     template_variables=template_variables,
-            ...     metadata=metadata,
-            ... )
-            >>> prompt_template.save_to_local("code_teacher_test.yaml")
-        """
-
-        path = Path(path)
-        # Handle format inference and validation
-        file_extension = path.suffix.lstrip(".")
-        if format is None:
-            # Infer format from extension
-            if file_extension in ["yaml", "yml"]:
-                format = "yaml"
-            elif file_extension == "json":
-                format = "json"
-            else:
-                raise ValueError(f"Cannot infer format from file extension: {path.suffix}")
-        else:
-            # Validate explicitly provided format matches file extension
-            if format not in ["yaml", "yml", "json"]:
-                raise ValueError(f"Unsupported format: {format}")
-            if format in ["yaml", "yml"] and file_extension in ["yaml", "yml"]:
-                # Both are YAML variants, so they match
-                pass
-            elif format != file_extension:
-                raise ValueError(f"Provided format '{format}' does not match file extension '{path.suffix}'")
-
-        data = {
-            "prompt": {
-                "template": self.template,
-                "template_variables": self.template_variables,
-                "metadata": self.metadata,
-                "client_parameters": self.client_parameters,
-                "custom_data": self.custom_data,
-            }
-        }
-
-        if prettify_template:
-            data["prompt"]["template"] = format_template_content(data["prompt"]["template"])
-
-        with open(path, "w", encoding="utf-8") as f:
-            if format == "json":
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            else:  # yaml
-                yaml_handler = create_yaml_handler(yaml_library)
-                if yaml_library == "ruamel":
-                    yaml_handler.dump(data, f)
-                elif yaml_library == "pyyaml":
-                    yaml_handler.dump(data, f, sort_keys=False, allow_unicode=True)
-                else:
-                    raise ValueError(
-                        f"Unknown yaml library: {yaml_library}. Valid options are: 'ruamel' (default) or 'pyyaml'."
-                    )
-
     def display(self, format: Literal["json", "yaml"] = "json") -> None:
         """Display the prompt configuration in the specified format.
 
         Examples:
-            >>> from prompt_templates import PromptTemplateLoader
-            >>> prompt_template = PromptTemplateLoader.from_hub(
+            >>> from prompt_templates import TextPromptTemplate
+            >>> prompt_template = TextPromptTemplate.load_from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
@@ -427,7 +724,7 @@ class BasePromptTemplate(ABC):
         public_attrs = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
 
         attributes = ", ".join(
-            f"{key}={repr(value)[:50]}..." if len(repr(value)) > 50 else f"{key}={repr(value)}"
+            f"{key}={repr(value)[:50]}...'" if len(repr(value)) > 50 else f"{key}={repr(value)}"
             for key, value in public_attrs.items()
         )
         return f"{self.__class__.__name__}({attributes})"
@@ -627,19 +924,19 @@ class TextPromptTemplate(BasePromptTemplate):
         ...     "description": "A simple translation prompt for illustrating the standard prompt YAML format",
         ...     "tags": ["translation", "multilinguality"],
         ...     "version": "0.0.1",
-        ...     "author": "Some Person"
-        }
+        ...     "author": "Guy van Babel"
+        ... }
         >>> prompt_template = TextPromptTemplate(
         ...     template=template_text,
         ...     template_variables=template_variables,
         ...     metadata=metadata
         ... )
         >>> print(prompt_template)
-        TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{text}}', template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A simple translation prompt for illustrating the standard prompt YAML format', 'tags': ['translation', 'multilinguality'], 'version': '0.0.1', 'author': 'Some Person'}, custom_data={}, populator='jinja2')
+        TextPromptTemplate(template='Translate the following text to {{language}}:\\n{{..., template_variables=['language', 'text'], metadata={'name': 'Simple Translator', 'description': 'A si..., client_parameters={}, custom_data={}, populator='jinja2', jinja2_security_level='standard')
 
         >>> # Inspect template attributes
         >>> prompt_template.template
-        'Translate the following text to {language}:\\n{text}'
+        'Translate the following text to {{language}}:\\n{{text}}'
         >>> prompt_template.template_variables
         ['language', 'text']
         >>> prompt_template.metadata['name']
@@ -651,11 +948,12 @@ class TextPromptTemplate(BasePromptTemplate):
         ...     text="Hello world!"
         ... )
         >>> print(prompt)
-        'Translate the following text to French:\\nHello world!'
+        Translate the following text to French:
+        Hello world!
 
         Or download the same text prompt template from the Hub:
-        >>> from prompt_templates import PromptTemplateLoader
-        >>> prompt_template_downloaded = PromptTemplateLoader.from_hub(
+        >>> from prompt_templates import TextPromptTemplate
+        >>> prompt_template_downloaded = TextPromptTemplate.load_from_hub(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="translate.yaml"
         ... )
@@ -687,19 +985,20 @@ class TextPromptTemplate(BasePromptTemplate):
         """Populate the prompt by replacing placeholders with provided values.
 
         Examples:
-            >>> from prompt_templates import PromptTemplateLoader
-            >>> prompt_template = PromptTemplateLoader.from_hub(
+            >>> from prompt_templates import TextPromptTemplate
+            >>> prompt_template = TextPromptTemplate.load_from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
             >>> prompt_template.template
-            'Translate the following text to {language}:\\n{text}'
+            'Translate the following text to {{language}}:\\n{{text}}'
             >>> prompt = prompt_template.populate_template(
             ...     language="French",
             ...     text="Hello world!"
             ... )
             >>> print(prompt)
-            'Translate the following text to French:\\nHello world!'
+            Translate the following text to French:
+            Hello world!
 
         Args:
             **user_provided_variables: The values to fill placeholders in the prompt template.
@@ -715,8 +1014,8 @@ class TextPromptTemplate(BasePromptTemplate):
         """Convert the TextPromptTemplate to a LangChain PromptTemplate.
 
         Examples:
-            >>> from prompt_templates import PromptTemplateLoader
-            >>> prompt_template = PromptTemplateLoader.from_hub(
+            >>> from prompt_templates import TextPromptTemplate
+            >>> prompt_template = TextPromptTemplate.load_from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="translate.yaml"
             ... )
@@ -760,7 +1059,7 @@ class ChatPromptTemplate(BasePromptTemplate):
         ...     "description": "A simple chat prompt for explaining programming concepts with examples",
         ...     "tags": ["programming", "education"],
         ...     "version": "0.0.1",
-        ...     "author": "My Awesome Company"
+        ...     "author": "Guido van Bossum"
         ... }
         >>> prompt_template = ChatPromptTemplate(
         ...     template=template_messages,
@@ -768,10 +1067,10 @@ class ChatPromptTemplate(BasePromptTemplate):
         ...     metadata=metadata
         ... )
         >>> print(prompt_template)
-        ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., custom_data={}, populator='jinja2')
+        ChatPromptTemplate(template=[{'role': 'system', 'content': 'You are a coding a..., template_variables=['concept', 'programming_language'], metadata={'name': 'Code Teacher', 'description': 'A simple ..., client_parameters={}, custom_data={}, populator='jinja2', jinja2_security_level='standard')
         >>> # Inspect template attributes
         >>> prompt_template.template
-        [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
+        [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {{concept}} is in {{programming_language}}.'}]
         >>> prompt_template.template_variables
         ['concept', 'programming_language']
 
@@ -785,7 +1084,8 @@ class ChatPromptTemplate(BasePromptTemplate):
 
         >>> # By default, the populated prompt is in the OpenAI messages format, as it is adopted by many open-source libraries
         >>> # You can convert to formats used by other LLM clients like Anthropic's or Google Gemini's like this:
-        >>> messages_anthropic = prompt.format_for_client("anthropic")
+        >>> from prompt_templates import format_for_client
+        >>> messages_anthropic = format_for_client(messages, "anthropic")
         >>> print(messages_anthropic)
         {'system': 'You are a coding assistant who explains concepts clearly and provides short examples.', 'messages': [{'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]}
 
@@ -799,8 +1099,8 @@ class ChatPromptTemplate(BasePromptTemplate):
         {'system': 'You are a coding assistant who explains concepts clearly and provides short examples.', 'messages': [{'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]}
 
         Or download the same chat prompt template from the Hub:
-        >>> from prompt_templates import PromptTemplateLoader
-        >>> prompt_template_downloaded = PromptTemplateLoader.from_hub(
+        >>> from prompt_templates import ChatPromptTemplate
+        >>> prompt_template_downloaded = ChatPromptTemplate.load_from_hub(
         ...     repo_id="MoritzLaurer/example_prompts",
         ...     filename="code_teacher.yaml"
         ... )
@@ -834,8 +1134,8 @@ class ChatPromptTemplate(BasePromptTemplate):
         """Populate the prompt template messages by replacing placeholders with provided values.
 
         Examples:
-            >>> from prompt_templates import PromptTemplateLoader
-            >>> prompt_template = PromptTemplateLoader.from_hub(
+            >>> from prompt_templates import ChatPromptTemplate
+            >>> prompt_template = ChatPromptTemplate.load_from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
@@ -871,8 +1171,8 @@ class ChatPromptTemplate(BasePromptTemplate):
         populating a ChatPromptTemplate converts it into the OpenAI messages format by default.
 
         Examples:
-            >>> from prompt_templates import PromptTemplateLoader
-            >>> prompt_template = PromptTemplateLoader.from_hub(
+            >>> from prompt_templates import ChatPromptTemplate
+            >>> prompt_template = ChatPromptTemplate.load_from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
@@ -915,8 +1215,8 @@ class ChatPromptTemplate(BasePromptTemplate):
         """Convert the ChatPromptTemplate to a LangChain ChatPromptTemplate.
 
         Examples:
-            >>> from prompt_templates import PromptTemplateLoader
-            >>> prompt_template = PromptTemplateLoader.from_hub(
+            >>> from prompt_templates import ChatPromptTemplate
+            >>> prompt_template = ChatPromptTemplate.load_from_hub(
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
@@ -946,192 +1246,3 @@ class ChatPromptTemplate(BasePromptTemplate):
             input_variables=self.template_variables,
             metadata=self.metadata,
         )
-
-
-class TemplatePopulator(ABC):
-    """Abstract base class for template populating strategies."""
-
-    @abstractmethod
-    def populate(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
-        """Populate the template with given user_provided_variables."""
-        pass
-
-    @abstractmethod
-    def get_variable_names(self, template_str: str) -> Set[str]:
-        """Extract variable names from template."""
-        pass
-
-
-class SingleBracePopulator(TemplatePopulator):
-    """Template populator using regex for basic {var} substitution."""
-
-    def populate(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
-        pattern = re.compile(r"\{([^{}]+)\}")
-
-        def replacer(match: Match[str]) -> str:
-            key = match.group(1).strip()
-            if key not in user_provided_variables:
-                raise ValueError(f"Variable '{key}' not found in provided variables")
-            return str(user_provided_variables[key])
-
-        return pattern.sub(replacer, template_str)
-
-    def get_variable_names(self, template_str: str) -> Set[str]:
-        pattern = re.compile(r"\{([^{}]+)\}")
-        return {match.group(1).strip() for match in pattern.finditer(template_str)}
-
-
-class DoubleBracePopulator(TemplatePopulator):
-    """Template populator using regex for {{var}} substitution."""
-
-    def populate(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
-        pattern = re.compile(r"\{\{([^{}]+)\}\}")
-
-        def replacer(match: Match[str]) -> str:
-            key = match.group(1).strip()
-            if key not in user_provided_variables:
-                raise ValueError(f"Variable '{key}' not found in provided variables")
-            return str(user_provided_variables[key])
-
-        return pattern.sub(replacer, template_str)
-
-    def get_variable_names(self, template_str: str) -> Set[str]:
-        pattern = re.compile(r"\{\{([^{}]+)\}\}")
-        return {match.group(1).strip() for match in pattern.finditer(template_str)}
-
-
-class Jinja2TemplatePopulator(TemplatePopulator):
-    """Jinja2 template populator with configurable security levels.
-
-    Security Levels:
-        - strict: Minimal set of features, highest security
-            Filters: lower, upper, title, safe
-            Tests: defined, undefined, none
-            Env: autoescape=True, no caching, no globals, no auto-reload
-        - standard (default): Balanced set of features
-            Filters: lower, upper, title, capitalize, trim, strip, replace, safe,
-                    int, float, join, split, length
-            Tests: defined, undefined, none, number, string, sequence
-            Env: autoescape=True, limited caching, basic globals, no auto-reload
-        - relaxed: Default Jinja2 behavior (use with trusted templates only)
-            All default Jinja2 features enabled
-            Env: autoescape=False, full caching, all globals, auto-reload allowed
-
-    Args:
-        security_level: Level of security restrictions ("strict", "standard", "relaxed")
-    """
-
-    def __init__(self, security_level: Jinja2SecurityLevel = "standard"):
-        # Store security level for error messages
-        self.security_level = security_level
-
-        if security_level == "strict":
-            # Most restrictive settings
-            self.env = SandboxedEnvironment(
-                undefined=jinja2.StrictUndefined,
-                trim_blocks=True,
-                lstrip_blocks=True,
-                autoescape=True,  # Force autoescaping
-                cache_size=0,  # Disable caching
-                auto_reload=False,  # Disable auto reload
-            )
-            # Remove all globals
-            self.env.globals.clear()
-
-            # Minimal set of features
-            safe_filters = {"lower", "upper", "title"}
-            safe_tests = {"defined", "undefined", "none"}
-
-        elif security_level == "standard":
-            # Balanced settings
-            self.env = SandboxedEnvironment(
-                undefined=jinja2.StrictUndefined,
-                trim_blocks=True,
-                lstrip_blocks=True,
-                autoescape=True,  # Keep autoescaping
-                cache_size=100,  # Limited cache
-                auto_reload=False,  # Still no auto reload
-            )
-            # Allow some safe globals
-            self.env.globals.update(
-                {
-                    "range": range,  # Useful for iterations
-                    "dict": dict,  # Basic dict operations
-                    "len": len,  # Length calculations
-                }
-            )
-
-            # Balanced set of features
-            safe_filters = {
-                "lower",
-                "upper",
-                "title",
-                "capitalize",
-                "trim",
-                "strip",
-                "replace",
-                "safe",
-                "int",
-                "float",
-                "join",
-                "split",
-                "length",
-            }
-            safe_tests = {"defined", "undefined", "none", "number", "string", "sequence"}
-
-        elif security_level == "relaxed":
-            self.env = Environment(
-                undefined=jinja2.StrictUndefined,
-                trim_blocks=True,
-                lstrip_blocks=True,
-                autoescape=False,  # Default Jinja2 behavior
-                cache_size=400,  # Default cache size
-                auto_reload=True,  # Allow auto reload
-            )
-            # Keep all default globals and features
-            return
-        else:
-            raise ValueError(f"Invalid security level: {security_level}")
-
-        # Apply security settings for strict and standard modes
-        self._apply_security_settings(safe_filters, safe_tests)
-
-    def _apply_security_settings(self, safe_filters: Set[str], safe_tests: Set[str]) -> None:
-        """Apply security settings by removing unsafe filters and tests."""
-        # Remove unsafe filters
-        unsafe_filters = set(self.env.filters.keys()) - safe_filters
-        for unsafe in unsafe_filters:
-            self.env.filters.pop(unsafe, None)
-
-        # Remove unsafe tests
-        unsafe_tests = set(self.env.tests.keys()) - safe_tests
-        for unsafe in unsafe_tests:
-            self.env.tests.pop(unsafe, None)
-
-    def populate(self, template_str: str, user_provided_variables: Dict[str, Any]) -> str:
-        """Populate the template with given user_provided_variables."""
-        try:
-            template = self.env.from_string(template_str)
-            populated = template.render(**user_provided_variables)
-            # Ensure we return a string for mypy
-            return str(populated)
-        except jinja2.TemplateSyntaxError as e:
-            raise ValueError(
-                f"Invalid template syntax at line {e.lineno}: {str(e)}\n" f"Security level: {self.security_level}"
-            ) from e
-        except jinja2.UndefinedError as e:
-            raise ValueError(
-                f"Undefined variable in template: {str(e)}\n" "Make sure all required variables are provided"
-            ) from e
-        except Exception as e:
-            raise ValueError(f"Error populating template: {str(e)}") from e
-
-    def get_variable_names(self, template_str: str) -> Set[str]:
-        """Extract variable names from template."""
-        try:
-            ast = self.env.parse(template_str)
-            variables = meta.find_undeclared_variables(ast)
-            # Ensure we return a set of strings for mypy
-            return {str(var) for var in variables}
-        except jinja2.TemplateSyntaxError as e:
-            raise ValueError(f"Invalid template syntax: {str(e)}") from e

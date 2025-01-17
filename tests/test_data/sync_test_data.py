@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from huggingface_hub import HfApi
 from tqdm import tqdm
 
-from prompt_templates import PromptTemplateLoader
+from prompt_templates import ChatPromptTemplate, TextPromptTemplate
 
 
 MODEL_REPOS = ["open_models_special_prompts"]
@@ -75,7 +75,10 @@ def sync_test_files(force: bool = False):
             try:
                 # Load and standardize through library
                 populator = "jinja2" if local_file.stem in JINJA2_PROMPTS else "double_brace"
-                template = PromptTemplateLoader.from_local(path=local_file, populator=populator)
+                try:
+                    template = ChatPromptTemplate.load_from_local(path=local_file, populator=populator)
+                except Exception:
+                    template = TextPromptTemplate.load_from_local(path=local_file, populator=populator)
 
                 # Save standardized version locally
                 standardized_path = directory / f"{local_file.stem}_standardized{local_file.suffix}"

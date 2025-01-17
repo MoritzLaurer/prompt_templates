@@ -41,15 +41,15 @@ The following example illustrates how the prompt template becomes a prompt.
 
 ```python
 >>> # 1. Download a prompt template:
->>> from prompt_templates import PromptTemplateLoader
->>> prompt_template = PromptTemplateLoader.from_hub(
+>>> from prompt_templates import ChatPromptTemplate
+>>> prompt_template = ChatPromptTemplate.load_from_hub(
 ...     repo_id="MoritzLaurer/example_prompts",
 ...     filename="code_teacher.yaml"
 ... )
 
 >>> # 2. Inspect the template and it's variables:
 >>> prompt_template.template
-[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {concept} is in {programming_language}.'}]
+[{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what {{concept}} is in {{programming_language}}.'}]
 >>> prompt_template.template_variables
 ['concept', 'programming_language']
 
@@ -60,6 +60,7 @@ The following example illustrates how the prompt template becomes a prompt.
 ... )
 >>> print(prompt)
 [{'role': 'system', 'content': 'You are a coding assistant who explains concepts clearly and provides short examples.'}, {'role': 'user', 'content': 'Explain what list comprehension is in Python.'}]
+
 ```
 
 
@@ -106,8 +107,8 @@ This library is inspired by LangChain's [PromptTemplate](https://python.langchai
 A `PromptTemplate` from `prompt-templates` can be easily converted to a langchain template: 
 
 ```py
-from prompt_templates import PromptTemplateLoader
-prompt_template = PromptTemplateLoader.from_hub(
+from prompt_templates import ChatPromptTemplate
+prompt_template = ChatPromptTemplate.load_from_hub(
     repo_id="MoritzLaurer/example_prompts",
     filename="code_teacher.yaml"
 )

@@ -1,10 +1,50 @@
+import logging
 from typing import Any, Dict, List, Optional, Union, get_args
 
 import yaml as pyyaml
+from huggingface_hub import HfApi
 from ruamel.yaml import YAML
 from ruamel.yaml.scalarstring import LiteralScalarString
 
-from .constants import ClientType
+from .constants import VALID_PROMPT_EXTENSIONS, ClientType
+
+
+logger = logging.getLogger(__name__)
+
+
+def list_prompt_templates(
+    repo_id: str, repo_type: Optional[str] = "dataset", token: Optional[str] = None
+) -> List[str]:
+    """List available prompt template YAML files in a Hugging Face Hub repository.
+
+    Args:
+        repo_id (str): The repository ID on Hugging Face Hub.
+        repo_type (Optional[str]): The type of repository. Defaults to "dataset".
+        token (Optional[str]): An optional authentication token. Defaults to None.
+
+    Returns:
+        List[str]: A list of YAML filenames in the repository sorted alphabetically.
+
+    Examples:
+        List all prompt templates in a repository:
+        >>> from prompt_templates import list_prompt_templates
+        >>> files = list_prompt_templates("MoritzLaurer/example_prompts")
+        >>> files
+        ['code_teacher.yaml', 'code_teacher_test.yaml', 'translate.yaml', 'translate_jinja2.yaml']
+
+    Note:
+        This function simply returns all YAML file names in the repository.
+        It does not validate if the files contain valid prompt templates, which would require downloading them.
+    """
+    logger.info(
+        "This function simply returns all YAML file names in the repository. "
+        "It does not validate if the files contain valid prompt templates, which would require downloading them."
+    )
+    api = HfApi(token=token)
+    yaml_files = [
+        file for file in api.list_repo_files(repo_id, repo_type=repo_type) if file.endswith(VALID_PROMPT_EXTENSIONS)
+    ]
+    return sorted(yaml_files)
 
 
 def format_for_client(

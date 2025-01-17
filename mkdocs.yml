@@ -13,9 +13,9 @@ nav:
     #- Tools: standard_tool_format.md
     #- Agents: agents.md
   - API Reference:
-    - Downloading prompts and tools: reference/loaders.md
     - Prompt templates: reference/prompt_templates.md
     - Utility functions: reference/utils.md
+    - Populating templates: reference/populators.md
     #- Tools: reference/tools.md
 
 theme:

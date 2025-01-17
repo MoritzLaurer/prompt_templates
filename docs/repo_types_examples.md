@@ -32,8 +32,8 @@ list_prompt_templates(repo_id="MoritzLaurer/closed_system_prompts")
 Here, we download the leaked prompt for Claude-3.5 Sonnet for creating Artifacts. 
 
 ```python
-from prompt_templates import PromptTemplateLoader
-prompt_template = PromptTemplateLoader.from_hub(
+from prompt_templates import ChatPromptTemplate
+prompt_template = ChatPromptTemplate.load_from_hub(
     repo_id="MoritzLaurer/closed_system_prompts",
     filename="claude-3-5-artifacts-leak-210624.yaml"
 )
@@ -88,8 +88,8 @@ response = client_anthropic.messages.create(
 The paper "JudgeBench: A Benchmark for Evaluating LLM-Based Judges" (<a href="https://arxiv.org/pdf/2410.12784">paper</a>) collects several prompts for using LLMs to evaluate unstructured LLM outputs. After copying them into a HF Hub dataset repo in the standardized YAML format, they can be directly loaded and populated.
 
 ```python
-from prompt_templates import PromptTemplateLoader
-prompt_template = PromptTemplateLoader.from_hub(
+from prompt_templates import ChatPromptTemplate
+prompt_template = ChatPromptTemplate.load_from_hub(
   repo_id="MoritzLaurer/prompts_from_papers", 
   filename="judgebench-vanilla-prompt.yaml"
 )
@@ -104,11 +104,11 @@ The community has extracted system prompts from closed API providers like OpenAI
 
 
 ```python
-from prompt_templates import list_prompt_templates, PromptTemplateLoader
+from prompt_templates import list_prompt_templates, ChatPromptTemplate
 list_prompt_templates(repo_id="MoritzLaurer/closed_system_prompts")
 # out: ['claude-3-5-artifacts-leak-210624.yaml', 'claude-3-5-sonnet-text-090924.yaml', 'claude-3-5-sonnet-text-image-090924.yaml', 'openai-metaprompt-audio.yaml', 'openai-metaprompt-text.yaml']
 
-prompt_template = PromptTemplateLoader.from_hub(
+prompt_template = ChatPromptTemplate.load_from_hub(
   repo_id="MoritzLaurer/closed_system_prompts", 
   filename="openai-metaprompt-text.yaml"
 )
@@ -131,8 +131,8 @@ These prompt templates are currently either mentioned unsystematically in model 
 
 ```python
 # download image prompt template
-from prompt_templates import PromptTemplateLoader
-prompt_template = PromptTemplateLoader.from_hub(
+from prompt_templates import ChatPromptTemplate
+prompt_template = ChatPromptTemplate.load_from_hub(
   repo_id="MoritzLaurer/open_models_special_prompts", 
   filename="internvl2-bbox-prompt.yaml"
 )
@@ -196,11 +196,11 @@ See this <a href="https://huggingface.co/datasets/MoritzLaurer/dataset_prompts">
 
 
 ```python
-from prompt_templates import PromptTemplateLoader
+from prompt_templates import ChatPromptTemplate
 import torch
 from transformers import pipeline
 
-prompt_template = PromptTemplateLoader.from_hub(
+prompt_template = ChatPromptTemplate.load_from_hub(
   repo_id="MoritzLaurer/dataset_prompts", 
   filename="fineweb-edu-prompt.yaml", 
 )
