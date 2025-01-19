@@ -53,7 +53,7 @@ print(prompt_template.template_variables)
 # ['current_date', 'user_message']
 
 user_message = "Create a simple calculator web application"
-messages = prompt_template.populate_template(
+messages = prompt_template.populate(
     user_message=user_message, 
     current_date="Monday 21st October 2024", 
 )
@@ -140,7 +140,7 @@ prompt_template = ChatPromptTemplate.load_from_hub(
 # populate prompt
 image_url = "https://unsplash.com/photos/ZVw3HmHRhv0/download?ixid=M3wxMjA3fDB8MXxhbGx8NHx8fHx8fDJ8fDE3MjQ1NjAzNjl8&force=true&w=1920"
 region_to_detect = "the bird"
-messages = prompt_template.populate_template(image_url=image_url, region_to_detect=region_to_detect)
+messages = prompt_template.populate(image_url=image_url, region_to_detect=region_to_detect)
 
 print(messages)
 #[{'role': 'user',
@@ -207,7 +207,7 @@ prompt_template = ChatPromptTemplate.load_from_hub(
 
 # populate the prompt
 text_to_score = "The quick brown fox jumps over the lazy dog"
-messages = prompt_template.populate_template(text_to_score=text_to_score)
+messages = prompt_template.populate(text_to_score=text_to_score)
 
 # test prompt with local llama
 model_id = "meta-llama/Llama-3.2-1B-Instruct"  # prompt was original created for meta-llama/Meta-Llama-3-70B-Instruct

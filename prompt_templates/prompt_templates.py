@@ -86,7 +86,7 @@ class BasePromptTemplate(ABC):
             self._validate_template_variables_equality()
 
     @abstractmethod
-    def populate_template(self, **user_provided_variables: Any) -> str | List[Dict[str, Any]]:
+    def populate(self, **user_provided_variables: Any) -> str | List[Dict[str, Any]]:
         """Abstract method to populate the prompt template with user-provided variables.
 
         Args:
@@ -944,7 +944,7 @@ class TextPromptTemplate(BasePromptTemplate):
         'Simple Translator'
 
         >>> # Populate the template
-        >>> prompt = prompt_template.populate_template(
+        >>> prompt = prompt_template.populate(
         ...     language="French",
         ...     text="Hello world!"
         ... )
@@ -982,7 +982,7 @@ class TextPromptTemplate(BasePromptTemplate):
             jinja2_security_level=jinja2_security_level,
         )
 
-    def populate_template(self, **user_provided_variables: Any) -> str:
+    def populate(self, **user_provided_variables: Any) -> str:
         """Populate the prompt by replacing placeholders with provided values.
 
         Examples:
@@ -993,7 +993,7 @@ class TextPromptTemplate(BasePromptTemplate):
             ... )
             >>> prompt_template.template
             'Translate the following text to {{language}}:\\n{{text}}'
-            >>> prompt = prompt_template.populate_template(
+            >>> prompt = prompt_template.populate(
             ...     language="French",
             ...     text="Hello world!"
             ... )
@@ -1076,7 +1076,7 @@ class ChatPromptTemplate(BasePromptTemplate):
         ['concept', 'programming_language']
 
         >>> # Populate the template
-        >>> messages = prompt_template.populate_template(
+        >>> messages = prompt_template.populate(
         ...     concept="list comprehension",
         ...     programming_language="Python"
         ... )
@@ -1131,7 +1131,7 @@ class ChatPromptTemplate(BasePromptTemplate):
             jinja2_security_level=jinja2_security_level,
         )
 
-    def populate_template(self, **user_provided_variables: Any) -> List[Dict[str, Any]]:
+    def populate(self, **user_provided_variables: Any) -> List[Dict[str, Any]]:
         """Populate the prompt template messages by replacing placeholders with provided values.
 
         Examples:
@@ -1140,7 +1140,7 @@ class ChatPromptTemplate(BasePromptTemplate):
             ...     repo_id="MoritzLaurer/example_prompts",
             ...     filename="code_teacher.yaml"
             ... )
-            >>> messages = prompt_template.populate_template(
+            >>> messages = prompt_template.populate(
             ...     concept="list comprehension",
             ...     programming_language="Python"
             ... )
@@ -1209,7 +1209,7 @@ class ChatPromptTemplate(BasePromptTemplate):
                 "while the second user_provided_variable version will be used in template population."
             )
 
-        prompt = self.populate_template(**user_provided_variables)
+        prompt = self.populate(**user_provided_variables)
         return format_for_client(prompt, client)
 
     def to_langchain_template(self) -> "LC_ChatPromptTemplate":

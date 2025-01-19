@@ -54,7 +54,7 @@ The following example illustrates how the prompt template becomes a prompt.
 ['concept', 'programming_language']
 
 >>> # 3. Populate the template with its variables
->>> prompt = prompt_template.populate_template(
+>>> prompt = prompt_template.populate(
 ...     concept="list comprehension",
 ...     programming_language="Python"
 ... )
