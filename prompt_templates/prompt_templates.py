@@ -5,11 +5,11 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Set, Tuple, Union
 
-import yaml
 from huggingface_hub import HfApi, hf_hub_download, metadata_update
 from huggingface_hub.hf_api import CommitInfo
 from huggingface_hub.repocard import RepoCard
 from huggingface_hub.utils import RepositoryNotFoundError, validate_repo_id
+from ruamel.yaml import YAML
 
 from .constants import VALID_PROMPT_EXTENSIONS, ClientType, Jinja2SecurityLevel, PopulatorType
 from .populators import DoubleBracePopulator, Jinja2TemplatePopulator, SingleBracePopulator, TemplatePopulator
@@ -706,16 +706,28 @@ class BasePromptTemplate(ABC):
               version: 0.0.1
               author: Some Person
         """
-        # Create a dict of all attributes except custom_data
-        display_dict = self.__dict__.copy()
-        display_dict.pop("custom_data", None)
-
-        # TODO: display Jinja2 template content properly
+        # Create a clean dict with only the relevant attributes
+        display_dict = {
+            "template": self.template,
+            "template_variables": self.template_variables,
+            "metadata": self.metadata,
+            "client_parameters": self.client_parameters,
+            "custom_data": self.custom_data,
+        }
 
         if format == "json":
             print(json.dumps(display_dict, indent=2), end="")
         elif format == "yaml":
-            print(yaml.dump(display_dict, default_flow_style=False, sort_keys=False), end="")
+            # Create a new YAML instance without version/tags output
+            yaml_handler = YAML()
+            yaml_handler.explicit_start = False
+            yaml_handler.explicit_end = False
+            yaml_handler.version = None
+
+            # Dump to string first to avoid stdout formatting issues
+            output = io.StringIO()
+            yaml_handler.dump(display_dict, output)
+            print(output.getvalue(), end="")
 
     def __getitem__(self, key: str) -> Any:
         return self.__dict__[key]
