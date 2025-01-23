@@ -1,0 +1,54 @@
+prompt:
+  template_dictionary:
+    agent_system_prompt:
+      template:
+        - role: "system"
+          content: |-
+            You are a code agent and you have the following tools at your disposal:
+            <tools>
+            {{tool_descriptions}}
+            </tools>
+        - role: "user"
+          content: |-
+            Here is the task:
+            <task>
+            {{task}}
+            </task>
+            Now begin!
+      template_variables:
+        - tool_descriptions
+        - task
+    agent_planning_prompt:
+      template: |-
+        Here is your task:
+
+        Task:
+        </task>
+        {{task}}
+        <task>
+
+        Your plan can leverage any of these tools:
+        {{tool_descriptions}}
+
+        {{managed_agents_descriptions}}
+
+        List of facts that you know:
+        <facts>
+        {{answer_facts}}
+        </facts>
+
+        Now begin! Write your plan below.
+      template_variables:
+        - task
+        - tool_descriptions
+        - managed_agents_descriptions
+        - answer_facts
+  metadata:
+    name: "Example Code Agent"
+    description: "A simple code agent example"
+    tags:
+      - agent
+    version: "0.0.1"
+    author: "Guido van Bossum"
+  client_parameters: {}
+  custom_data: {}

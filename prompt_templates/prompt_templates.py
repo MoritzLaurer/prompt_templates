@@ -1262,3 +1262,195 @@ class ChatPromptTemplate(BasePromptTemplate):
             input_variables=self.template_variables,
             metadata=self.metadata,
         )
+
+
+class PromptTemplateDictionary:
+    """
+    A container class that holds multiple prompt templates (TextPromptTemplate or ChatPromptTemplate),
+    as defined under the "template_dictionary" key in a YAML file. This allows users to store and manage
+    multiple interdependent templates in one place (e.g., for an agent that needs a system prompt,
+    a planning prompt, etc.).
+
+    Attributes:
+        template_dictionary (Dict[str, BasePromptTemplate]):
+            A dictionary of sub-prompt name -> BasePromptTemplate objects.
+        metadata (Dict[str, Any]):
+            Optional top-level metadata about this multi-prompt configuration.
+        client_parameters (Dict[str, Any]):
+            Optional top-level inference parameters (e.g., temperature).
+        custom_data (Dict[str, Any]):
+            Arbitrary additional data relevant to the multi-template.
+    """
+
+    def __init__(
+        self,
+        template_dictionary: Dict[str, "BasePromptTemplate"],
+        metadata: Optional[Dict[str, Any]] = None,
+        client_parameters: Optional[Dict[str, Any]] = None,
+        custom_data: Optional[Dict[str, Any]] = None,
+    ):
+        self.template_dictionary = template_dictionary
+        self.metadata = metadata or {}
+        self.client_parameters = client_parameters or {}
+        self.custom_data = custom_data or {}
+
+    @classmethod
+    def from_dict(
+        cls,
+        prompt_file_dic: Dict[str, Any],
+        populator: PopulatorType = "jinja2",
+        jinja2_security_level: Jinja2SecurityLevel = "standard",
+    ) -> "PromptTemplateDictionary":
+        """
+        Parse the multi-template structure from a Python dict (typically loaded from a YAML file).
+
+        Each key under "template_dictionary" is treated as a separate prompt definition.
+        We detect whether to instantiate a ChatPromptTemplate or TextPromptTemplate based
+        on the "template" field (list vs. string).
+
+        Args:
+            prompt_file_dic: The parsed YAML as a Python dictionary.
+            populator: Which templating approach to use (e.g., jinja2).
+            jinja2_security_level: Jinja2 sandbox security level.
+
+        Returns:
+            PromptTemplateDictionary: An instance containing all sub-prompts.
+        """
+        # TODO: double-check alignment with_load_template_from_dict (in terms of validation and naming)
+
+        # Validate YAML structure
+        if "prompt" not in prompt_file_dic:
+            raise ValueError(
+                f"Invalid YAML structure: The top-level keys are {list(prompt_file_dic.keys())}. "
+                "The YAML file must contain the key 'prompt' as the top-level key."
+            )
+
+        prompt_data = prompt_file_dic["prompt"]
+
+        # Extract fields
+        metadata = prompt_data.get("metadata")
+        client_parameters = prompt_data.get("client_parameters")
+        custom_data = {
+            k: v
+            for k, v in prompt_data.items()
+            if k not in ["template_dictionary", "metadata", "client_parameters", "custom_data"]
+        }
+        custom_data = {**prompt_data.get("custom_data", {}), **custom_data}
+
+        template_dictionary_raw = prompt_data.get("template_dictionary")
+        if template_dictionary_raw is None:
+            raise ValueError("The 'template_dictionary' key is missing from the input data.")
+        if not isinstance(template_dictionary_raw, dict):
+            raise ValueError("The 'template_dictionary' must be a dictionary.")
+
+        template_dictionary: Dict[str, BasePromptTemplate] = {}
+        for sub_template_name, sub_template in template_dictionary_raw.items():
+            # Each sub_template is itself a dict that must have "template" and optionally "template_variables", etc.
+            if "template" not in sub_template:
+                raise ValueError(
+                    f"Entry '{sub_template_name}' must contain a 'template' key. "
+                    f"Found keys: {list(sub_template.keys())}"
+                )
+
+            template_field = sub_template["template"]
+            template_variables = sub_template.get("template_variables")
+            sub_metadata = sub_template.get("metadata")
+            sub_client_parameters = sub_template.get("client_parameters")
+            sub_custom_data = sub_template.get("custom_data")
+
+            # Decide whether it's a ChatPromptTemplate or TextPromptTemplate
+            if isinstance(template_field, list) and any(isinstance(item, dict) for item in template_field):
+                # Likely ChatPromptTemplate
+                template_dictionary[sub_template_name] = ChatPromptTemplate(
+                    template=template_field,
+                    template_variables=template_variables,
+                    metadata=sub_metadata,
+                    client_parameters=sub_client_parameters,
+                    custom_data=sub_custom_data,
+                    populator=populator,
+                    jinja2_security_level=jinja2_security_level,
+                )
+            elif isinstance(template_field, str):
+                # TextPromptTemplate
+                template_dictionary[sub_template_name] = TextPromptTemplate(
+                    template=template_field,
+                    template_variables=template_variables,
+                    metadata=sub_metadata,
+                    client_parameters=sub_client_parameters,
+                    custom_data=sub_custom_data,
+                    populator=populator,
+                    jinja2_security_level=jinja2_security_level,
+                )
+            else:
+                raise ValueError(
+                    f"Invalid template type under '{sub_template_name}'. "
+                    "Template must be either a string for text prompts "
+                    "or a list of dicts for chat prompts."
+                )
+
+        return cls(
+            template_dictionary=template_dictionary,
+            metadata=metadata,
+            client_parameters=client_parameters,
+            custom_data=custom_data,
+        )
+
+    @classmethod
+    def load_from_local(
+        cls,
+        file_path: Union[str, Path],
+        populator: PopulatorType = "jinja2",
+        jinja2_security_level: Jinja2SecurityLevel = "standard",
+    ) -> "PromptTemplateDictionary":
+        """
+        Load a multi-prompt YAML file from the local filesystem, parse it,
+        and create a PromptTemplateDictionary.
+
+        Args:
+            file_path: Path to the YAML file.
+            populator: Templating approach (jinja2, double brace, etc.).
+            jinja2_security_level: Security level for Jinja2 sandbox.
+
+        Returns:
+            PromptTemplateDictionary with all sub-prompts.
+        """
+        file_path = Path(file_path)
+        if not file_path.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        yaml_handler = create_yaml_handler("ruamel")
+        with file_path.open("r", encoding="utf-8") as f:
+            data = yaml_handler.load(f)
+
+        return cls.from_dict(data, populator, jinja2_security_level)
+
+    def __getitem__(self, sub_template_name: str) -> "BasePromptTemplate":
+        """
+        Retrieve a sub-prompt by name.
+
+        Example:
+            >>> multi_template = PromptTemplateDictionary.load_from_local("agent_example_1.yaml")
+            >>> system_prompt = multi_template["agent_system_prompt"]
+            >>> populated = system_prompt.populate(tool_descriptions="...", task="...")
+        """
+        return self.template_dictionary[sub_template_name]
+
+    def populate(
+        self,
+        sub_template_name: str,
+        **user_provided_variables: Any,
+    ) -> Union[str, List[Dict[str, Any]]]:
+        """
+        Shortcut method to populate a single sub-prompt from this dictionary.
+
+        Args:
+            sub_template_name (str): The name of the sub-prompt to populate.
+            **user_provided_variables: Values for placeholders in the template.
+
+        Returns:
+            The populated prompt, either a list of message dicts (for chat)
+            or a single string (for text).
+        """
+        if sub_template_name not in self.template_dictionary:
+            raise KeyError(f"No sub-prompt named '{sub_template_name}' found.")
+        return self.template_dictionary[sub_template_name].populate(**user_provided_variables)

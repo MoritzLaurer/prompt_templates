@@ -10,12 +10,14 @@ nav:
     - Create a Prompt Template: create_template.md
     - Standard Prompt Format: standard_prompt_format.md
     - HF Hub Repo Types: repo_types_examples.md
+    - PromptTemplateDictionaries: template_dictionaries.md
     #- Tools: standard_tool_format.md
     #- Agents: agents.md
   - API Reference:
     - Prompt templates: reference/prompt_templates.md
     - Utility functions: reference/utils.md
     - Populating templates: reference/populators.md
+    - PromptTemplateDictionaries: reference/template_dictionaries.md
     #- Tools: reference/tools.md
 
 theme:

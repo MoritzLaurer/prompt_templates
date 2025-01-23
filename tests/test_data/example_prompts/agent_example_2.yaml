@@ -1,0 +1,21 @@
+prompt:
+  template_dictionary:
+    agent_system_template:
+      - role: "system"
+        content: ...
+      - role: "user"
+        content: ...
+    agent_planning_template: |-
+      Here is your task:
+      {{task}}
+
+  # issue: cannot validate if user populates a template with a variable that does not exist in the template, but does exist in template_variables
+  template_variables:
+    - tool_descriptions
+    - task
+    - ...
+  metadata:
+    ...
+  client_parameters:
+    ...
+    
