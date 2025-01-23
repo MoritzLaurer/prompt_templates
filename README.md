@@ -65,7 +65,7 @@ print(prompt_template.metadata)
 By default, the populated prompt is returned in the OpenAI messages format, which is compatible with most open-source LLM clients.
 
 ```python
-messages = prompt_template.populate_template(
+messages = prompt_template.populate(
     user_message="Create a tic-tac-toe game for me in Python",
     current_date="Wednesday, 11 December 2024"
 )
