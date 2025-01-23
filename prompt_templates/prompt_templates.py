@@ -691,20 +691,23 @@ class BasePromptTemplate(ABC):
             ...     filename="translate.yaml"
             ... )
             >>> prompt_template.display(format="yaml")  # doctest: +NORMALIZE_WHITESPACE
-            template: 'Translate the following text to {language}:
-              {text}'
+            template: |-
+              Translate the following text to {{language}}:
+              {{text}}
             template_variables:
             - language
             - text
             metadata:
-              name: Simple Translator
-              description: A simple translation prompt for illustrating the standard prompt YAML
-                format
+              name: "Simple Translator"
+              description: "A simple translation prompt for illustrating the standard prompt YAML
+                format"
               tags:
               - translation
               - multilinguality
-              version: 0.0.1
-              author: Some Person
+              version: "0.0.1"
+              author: "Guy van Babel"
+            client_parameters: {}
+            custom_data: {}
         """
         # Create a clean dict with only the relevant attributes
         display_dict = {

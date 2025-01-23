@@ -30,7 +30,7 @@ def list_prompt_templates(
         >>> from prompt_templates import list_prompt_templates
         >>> files = list_prompt_templates("MoritzLaurer/example_prompts")
         >>> files
-        ['code_teacher.yaml', 'code_teacher_test.yaml', 'translate.yaml', 'translate_jinja2.yaml']
+        ['code_teacher.yaml', 'translate.yaml', 'translate_jinja2.yaml']
 
     Note:
         This function simply returns all YAML file names in the repository.

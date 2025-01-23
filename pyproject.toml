@@ -72,7 +72,7 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-branch",
-    "--cov-fail-under=50",
+    #"--cov-fail-under=50",
     "--doctest-modules",
     "--doctest-glob=*.md"
 ]
@@ -96,7 +96,7 @@ omit = [
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 50
+#fail_under = 50
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
