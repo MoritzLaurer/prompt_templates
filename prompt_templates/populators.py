@@ -109,7 +109,7 @@ class Jinja2TemplatePopulator(TemplatePopulator):
                 undefined=jinja2.StrictUndefined,
                 trim_blocks=True,
                 lstrip_blocks=True,
-                autoescape=True,  # Keep autoescaping
+                autoescape=False,
                 cache_size=100,  # Limited cache
                 auto_reload=False,  # Still no auto reload
             )
