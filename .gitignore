@@ -1,6 +1,7 @@
 # Scratch or temporary files
 scratch/
 prompts/
+scripts/testing.ipynb
 
 # Byte-compiled files
 __pycache__/
@@ -33,3 +34,4 @@ coverage.xml
 # other files
 pyproject.artifacts.toml
 pyproject.hf_hub_prompts.toml
+
